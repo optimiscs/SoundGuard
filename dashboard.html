@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据中心 - 慧音执守</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- L7地图可视化库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@antv/l7@2.21.9/dist/l7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@antv/l7-maps@2.21.9/dist/l7-maps.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        :root {
+            --primary-color: #1A2980;
+            --primary-light: #26D0CE;
+            --secondary-color: #00d2ff;
+            --success-color: #00C853;
+            --warning-color: #FF9800;
+            --danger-color: #FF5252;
+            --dark-color: #333;
+            --light-color: #f5f7fa;
+            --text-color: #555;
+            --border-color: #e4e9f2;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--light-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #182572 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-light) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            opacity: 0.9;
+            text-align: center;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 0;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 顶部状态栏 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            height: 70px;
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            cursor: pointer;
+            position: relative;
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+
+        .notification-icon:hover {
+            background-color: var(--light-color);
+            color: var(--primary-color);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 18px;
+            height: 18px;
+            background-color: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: var(--text-color);
+        }
+
+        /* 主要内容区域 */
+        .content-area {
+            padding: 25px;
+        }
+
+        /* 欢迎卡片样式 */
+        .welcome-section {
+            margin-bottom: 30px;
+        }
+
+        .welcome-card {
+            background: linear-gradient(120deg, var(--primary-color), var(--primary-light));
+            color: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .welcome-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(26, 41, 128, 0.2);
+        }
+
+        .welcome-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .welcome-text {
+            flex: 1;
+        }
+
+        .welcome-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .welcome-desc {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .welcome-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background-color: white;
+            color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #f8f9ff;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .welcome-icon {
+            opacity: 0.15;
+            margin-left: 40px;
+        }
+
+        .welcome-icon svg {
+            display: block;
+        }
+
+        /* 快捷功能卡片样式 */
+        .shortcuts-section {
+            margin-bottom: 30px;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .shortcut-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .shortcut-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .shortcut-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .shortcut-content {
+            flex: 1;
+        }
+
+        .shortcut-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .shortcut-desc {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .shortcut-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+
+
+        /* 图表区域 */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            border-radius: 2px;
+            margin-right: 10px;
+        }
+
+        .chart-filter {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .chart-filter:hover {
+            border-color: var(--primary-color);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 320px;
+        }
+
+        /* 热力图容器 - 使用标准卡片样式 */
+        .heatmap-container {
+            /* 移除渐变背景，使用标准卡片样式 */
+        }
+
+        .heatmap-wrapper {
+            position: relative;
+        }
+
+        .heatmap-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .heatmap-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .heatmap-btn:hover {
+            background: var(--light-color);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .heatmap-btn.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+        }
+
+        /* 底部内容区域 */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        /* 用户举报区域 */
+        .user-reports {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .user-report-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-report-item:last-child {
+            border-bottom: none;
+        }
+
+        .report-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .report-content {
+            flex: 1;
+        }
+
+        .report-user {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .report-text {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .report-time {
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        /* 访问历史记录 */
+        .access-history {
+            background: white;
+            color: var(--dark-color);
+            position: relative;
+        }
+
+        .access-stats {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 120px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .access-stat {
+            text-align: center;
+        }
+
+        .access-stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .access-stat-label {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .status-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            position: relative;
+        }
+
+        .status-indicator::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            animation: pulse-indicator 2s infinite;
+        }
+
+        @keyframes pulse-indicator {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .status-list {
+            list-style: none;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-name {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.normal {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-badge.warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-badge.critical {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* 事件列表 */
+        .event-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .event-item:last-child {
+            border-bottom: none;
+        }
+
+        .event-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .event-indicator.high {
+            background: var(--danger-color);
+        }
+
+        .event-indicator.medium {
+            background: var(--warning-color);
+        }
+
+        .event-indicator.low {
+            background: var(--success-color);
+        }
+
+        .event-info {
+            flex: 1;
+        }
+
+        .event-title {
+            font-size: 0.9rem;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .event-meta {
+            font-size: 0.8rem;
+            color: var(--text-color);
+        }
+
+        .event-time {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            margin-left: 10px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+
+
+            .shortcuts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bottom-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                padding: 0 15px;
+            }
+
+            .content-area {
+                padding: 15px;
+            }
+
+            .welcome-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .welcome-icon {
+                margin-left: 0;
+                opacity: 0.1;
+            }
+
+            .welcome-actions {
+                justify-content: center;
+            }
+
+            .heatmap-controls {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            .heatmap-btn {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .shortcuts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .heatmap-controls {
+                gap: 6px;
+            }
+
+            .heatmap-btn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 左侧导航栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">慧</div>
+                <div class="logo-text">慧音执守</div>
+            </div>
+            <nav class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active">
+                            <div class="nav-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path d="M13,3V9H21V3M13,21H21V11H13M3,21H11V15H3M3,13H11V3H3V13Z" />
+                                </svg>
+                            </div>
+                            <span>数据中心</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="attack_monitor.html" class="nav-link">
+                            <div class="nav-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" />
+                                </svg>
+                            </div>
+                            <span>攻击监测</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="heatmap_analysis.html" class="nav-link">
+                            <div class="nav-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path d="M2,2V4H20V2H2M3,5V7H19V5H3M4,8V10H18V8H4M5,11V13H17V11H5M6,14V16H16V14H6M7,17V19H15V17H7M8,20V22H14V20H8Z" />
+                                </svg>
+                            </div>
+                            <span>热力图分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sensing_tasks.html" class="nav-link">
+                            <div class="nav-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z" />
+                                </svg>
+                            </div>
+                            <span>感知任务</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="prediction_analysis.html" class="nav-link">
+                            <div class="nav-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path d="M7,14L5,10L10,13L18.5,2.5L8,13L7,14M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2Z" />
+                                </svg>
+                            </div>
+                            <span>预测分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="data_reports.html" class="nav-link">
+                            <div class="nav-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                                </svg>
+                            </div>
+                            <span>数据报告</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="system_settings.html" class="nav-link">
+                            <div class="nav-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                    <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+                                </svg>
+                            </div>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部状态栏 -->
+            <header class="topbar">
+                <div class="page-title">数据中心</div>
+                <div class="user-menu">
+                    <div class="notification-icon">
+                        <span>通知</span>
+                        <div class="notification-badge">3</div>
+                    </div>
+                    <div class="user-profile">
+                        <div class="user-avatar">管</div>
+                        <div class="user-info">
+                            <div class="user-name">管理员</div>
+                            <div class="user-role">系统管理员</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 主要内容 -->
+            <div class="content-area">
+                <!-- 欢迎卡片 -->
+                <div class="welcome-section">
+                    <div class="welcome-card">
+                        <div class="welcome-content">
+                            <div class="welcome-text">
+                                <h2 class="welcome-title">欢迎回来，管理员！</h2>
+                                <p class="welcome-desc">慧音执守智能语音安全防护系统运行正常，全天候守护您的语音设备安全。</p>
+                                <div class="welcome-actions">
+                                    <button class="btn btn-primary">查看防护报告</button>
+                                    <button class="btn btn-secondary">系统设置</button>
+                                </div>
+                            </div>
+                            <div class="welcome-icon">
+                                <svg viewBox="0 0 24 24" width="120" height="120" fill="currentColor">
+                                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快捷功能卡片 -->
+                <div class="shortcuts-section">
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-card">
+                            <div class="shortcut-icon" style="background-color: rgba(0, 200, 83, 0.1);">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--success-color)">
+                                    <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z" />
+                                </svg>
+                            </div>
+                            <div class="shortcut-content">
+                                <h3 class="shortcut-title">成功拦截</h3>
+                                <p class="shortcut-desc">今日成功防护攻击</p>
+                            </div>
+                            <div class="shortcut-value">52</div>
+                        </div>
+
+                        <div class="shortcut-card">
+                            <div class="shortcut-icon" style="background-color: rgba(26, 41, 128, 0.1);">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--primary-color)">
+                                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" />
+                                </svg>
+                            </div>
+                            <div class="shortcut-content">
+                                <h3 class="shortcut-title">破获攻击</h3>
+                                <p class="shortcut-desc">识别并阻止的攻击</p>
+                            </div>
+                            <div class="shortcut-value">47</div>
+                        </div>
+
+                        <div class="shortcut-card">
+                            <div class="shortcut-icon" style="background-color: rgba(255, 82, 82, 0.1);">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--danger-color)">
+                                    <path d="M12,2L13.09,8.26L22,9L14.74,14.74L16.18,19.82L12,17L7.82,19.82L9.26,14.74L2,9L10.91,8.26L12,2M12,6.5L11.5,8.5L9.5,8.79L11.39,10.59L10.91,12.61L12,11.93L13.09,12.61L12.61,10.59L14.5,8.79L12.5,8.5L12,6.5Z" />
+                                </svg>
+                            </div>
+                            <div class="shortcut-content">
+                                <h3 class="shortcut-title">高危区域</h3>
+                                <p class="shortcut-desc">需要重点监控区域</p>
+                            </div>
+                            <div class="shortcut-value">4</div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- 图表区域 -->
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">历史报告</div>
+                            <select class="chart-filter" id="timeRangeSelector">
+                                <option value="7">最近7天</option>
+                                <option value="30">最近30天</option>
+                                <option value="90">最近90天</option>
+                            </select>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="attackTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container heatmap-container">
+                        <div class="heatmap-wrapper">
+                            <div class="chart-header">
+                                <div class="chart-title">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="margin-right: 8px;">
+                                        <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22S19,14.25 19,9A7,7 0 0,0 12,2Z" />
+                                    </svg>
+                                    全国攻击热力图
+                                </div>
+                                <div class="heatmap-controls">
+                                    <button class="heatmap-btn active" data-city="beijing">北京</button>
+                                    <button class="heatmap-btn" data-city="shanghai">上海</button>
+                                    <button class="heatmap-btn" data-city="guangzhou">广州</button>
+                                    <button class="heatmap-btn" data-city="shenzhen">深圳</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <div id="heatmapChart" style="width: 100%; height: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部区域 -->
+                <div class="bottom-grid">
+                    <div class="user-reports">
+                        <div class="status-header">
+                            <div class="status-title">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="margin-right: 8px;">
+                                    <path d="M16,4C18.11,4 20.11,4.79 21.64,6.32C23.17,7.85 23.96,9.85 23.96,12H22C22,8.69 19.31,6 16,6V4M16,8C17.1,8 18.1,8.4 18.83,9.13C19.56,9.86 19.96,10.86 19.96,12H18C18,10.9 17.1,10 16,10V8M7,4A3,3 0 0,0 4,7V10C4,10 3,10 3,11V18A1,1 0 0,0 4,19H9L12,16H21A1,1 0 0,0 22,15V11C22,10 21,10 21,10V7A3,3 0 0,0 18,4H7Z" />
+                                </svg>
+                                用户举报
+                            </div>
+                        </div>
+                        <div class="user-report-item">
+                            <div class="report-avatar">张</div>
+                            <div class="report-content">
+                                <div class="report-user">张三</div>
+                                <div class="report-text">今天音箱突然自己播放音乐，很奇怪。是不是被攻击了？求确认下安全状态</div>
+                                <div class="report-time">5分钟前</div>
+                            </div>
+                        </div>
+                        <div class="user-report-item">
+                            <div class="report-avatar">李</div>
+                            <div class="report-content">
+                                <div class="report-user">李四</div>
+                                <div class="report-text">刚才听到家里智能设备发出怪声，怀疑受到了超声波攻击。这种情况之前没遇到过 😰</div>
+                                <div class="report-time">12分钟前</div>
+                            </div>
+                        </div>
+                        <div class="user-report-item">
+                            <div class="report-avatar">王</div>
+                            <div class="report-content">
+                                <div class="report-user">王五</div>
+                                <div class="report-text">智能音箱出现了奇怪的行为，没有收到指令就开始执行。担心是攻击</div>
+                                <div class="report-time">18分钟前</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="access-history">
+                        <div class="status-header">
+                            <div class="status-title" style="color: var(--dark-color);">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="margin-right: 8px;">
+                                    <path d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z" />
+                                </svg>
+                                访问历史记录
+                            </div>
+                        </div>
+                        <div class="access-stats">
+                            <div class="access-stat">
+                                <div class="access-stat-value">247</div>
+                                <div class="access-stat-label">今日访问量</div>
+                            </div>
+                            <div class="access-stat">
+                                <div class="access-stat-value">1.2K</div>
+                                <div class="access-stat-label">本周访问量</div>
+                            </div>
+                            <div class="access-stat">
+                                <div class="access-stat-value">8.5K</div>
+                                <div class="access-stat-label">本月访问量</div>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper" style="height: 120px; margin-top: 20px;">
+                            <canvas id="accessHistoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 数字计数动画
+        function animateCounter(elementId, target, duration = 2000) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const start = 0;
+            const increment = target / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                
+                if (elementId === 'protectionRate') {
+                    element.textContent = current.toFixed(1) + '%';
+                } else {
+                    element.textContent = Math.floor(current).toLocaleString();
+                }
+            }, 16);
+        }
+
+        // 攻击趋势图表
+        let attackTrendChart = null;
+        
+        function initAttackTrendChart(timeRange = 7) {
+            const ctx = document.getElementById('attackTrendChart').getContext('2d');
+            
+            // 如果图表已存在，先销毁
+            if (attackTrendChart) {
+                attackTrendChart.destroy();
+            }
+            
+            // 根据时间范围生成不同的标签和数据
+            let labels, dolphinData, mlData;
+            
+            if (timeRange === 7) {
+                labels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+                dolphinData = [12, 18, 25, 15, 22, 28, 20];
+                mlData = [8, 15, 20, 12, 18, 25, 22];
+            } else if (timeRange === 30) {
+                labels = ['第1周', '第2周', '第3周', '第4周'];
+                dolphinData = [45, 52, 38, 48];
+                mlData = [35, 42, 28, 38];
+            } else {
+                labels = ['第1月', '第2月', '第3月'];
+                dolphinData = [120, 135, 98];
+                mlData = [95, 108, 85];
+            }
+            
+            attackTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '海豚音攻击',
+                        data: dolphinData,
+                        borderColor: '#FF6B6B',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }, {
+                        label: '机器学习攻击',
+                        data: mlData,
+                        borderColor: '#1A2980',
+                        backgroundColor: 'rgba(26, 41, 128, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e4e9f2'
+                            },
+                            ticks: {
+                                color: '#666'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#e4e9f2'
+                            },
+                            ticks: {
+                                color: '#666'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // 3D城市热力图
+        let heatmapScene = null;
+        let currentCity = 'beijing';
+        
+        // 城市配置
+        const cityConfigs = {
+            beijing: {
+                center: [116.397128, 39.916527],
+                pitch: 45,
+                zoom: 10.5,
+                sweepCenter: [116.397128, 39.916527]
+            },
+            shanghai: {
+                center: [121.473701, 31.230416],
+                pitch: 45,
+                zoom: 10.5,
+                sweepCenter: [121.473701, 31.230416]
+            },
+            guangzhou: {
+                center: [113.264434, 23.129162],
+                pitch: 45,
+                zoom: 10.5,
+                sweepCenter: [113.264434, 23.129162]
+            },
+            shenzhen: {
+                center: [114.085947, 22.547],
+                pitch: 45,
+                zoom: 10.5,
+                sweepCenter: [114.085947, 22.547]
+            }
+        };
+        
+        function initHeatmapChart(city = 'beijing') {
+            console.log('开始初始化热力图...', city);
+            
+            const container = document.getElementById('heatmapChart');
+            if (!container) {
+                console.error('找不到热力图容器');
+                return;
+            }
+            
+            // 检查L7是否加载
+            if (typeof L7 === 'undefined') {
+                console.error('L7库未加载，使用备用可视化');
+                initFallbackHeatmap(city);
+                return;
+            }
+            
+            try {
+                // 销毁之前的场景
+                if (heatmapScene) {
+                    heatmapScene.destroy();
+                    heatmapScene = null;
+                }
+                
+                const config = cityConfigs[city];
+                currentCity = city;
+                
+                console.log('创建L7场景...', config);
+                
+                // 使用最简单的初始化方式
+                heatmapScene = new L7.Scene({
+                    id: 'heatmapChart',
+                    map: new L7.GaodeMap({
+                        style: 'dark',
+                        center: config.center,
+                        pitch: 60,
+                        zoom: config.zoom,
+                    }),
+                });
+                
+                // 直接在场景创建后添加图层
+                heatmapScene.on('loaded', () => {
+                    console.log('L7场景加载完成');
+                    
+                    // 简化版本：只添加攻击点
+                    try {
+                        const attackData = generateSimpleAttackData(config.center);
+                        console.log('攻击数据:', attackData);
+                        
+                        const pointLayer = new L7.PointLayer()
+                            .source(attackData)
+                            .shape('circle')
+                            .size('intensity', [10, 30])
+                            .color('level', ['#00ff00', '#ffff00', '#ff6600', '#ff0000'])
+                            .style({
+                                opacity: 0.8,
+                            })
+                            .animate({
+                                enable: true,
+                                type: 'pulse',
+                                duration: 2000,
+                            });
+                        
+                        heatmapScene.addLayer(pointLayer);
+                        console.log('攻击点图层添加成功');
+                        
+                    } catch (layerError) {
+                        console.error('添加图层失败:', layerError);
+                    }
+                });
+                
+                heatmapScene.on('maploaded', () => {
+                    console.log('地图加载完成');
+                });
+                
+            } catch (error) {
+                console.error('L7初始化失败:', error);
+                initFallbackHeatmap(city);
+            }
+        }
+        
+        // 生成简化的攻击数据
+        function generateSimpleAttackData(center) {
+            return {
+                type: 'FeatureCollection',
+                features: [
+                    {
+                        type: 'Feature',
+                        properties: { intensity: 80, level: 4, name: '高危攻击' },
+                        geometry: { type: 'Point', coordinates: [center[0] + 0.01, center[1] + 0.01] }
+                    },
+                    {
+                        type: 'Feature', 
+                        properties: { intensity: 60, level: 3, name: '中危攻击' },
+                        geometry: { type: 'Point', coordinates: [center[0] - 0.01, center[1] + 0.005] }
+                    },
+                    {
+                        type: 'Feature',
+                        properties: { intensity: 40, level: 2, name: '低危攻击' },
+                        geometry: { type: 'Point', coordinates: [center[0] + 0.005, center[1] - 0.01] }
+                    }
+                ]
+            };
+        }
+        
+
+        
+        // 备用热力图实现
+        function initFallbackHeatmap(city = 'beijing') {
+            console.log('🎨 使用增强版备用热力图实现');
+            
+            const container = document.getElementById('heatmapChart');
+            if (!container) return;
+            
+            // 清空容器
+            container.innerHTML = '';
+            
+            // 创建主容器
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.style.cssText = `
+                position: relative;
+                width: 100%;
+                height: 100%;
+                background: 
+                    radial-gradient(circle at 25% 25%, rgba(255, 68, 68, 0.1) 0%, transparent 40%),
+                    radial-gradient(circle at 75% 25%, rgba(255, 165, 0, 0.1) 0%, transparent 40%),
+                    radial-gradient(circle at 75% 75%, rgba(255, 255, 0, 0.1) 0%, transparent 40%),
+                    radial-gradient(circle at 25% 75%, rgba(0, 255, 0, 0.1) 0%, transparent 40%),
+                    radial-gradient(circle at 50% 50%, rgba(0, 150, 255, 0.05) 0%, transparent 60%),
+                    #f8f9fa;
+                overflow: hidden;
+                border-radius: 12px;
+            `;
+            
+            // 添加网格背景
+            const gridOverlay = document.createElement('div');
+            gridOverlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-image: 
+                    linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+                background-size: 20px 20px;
+                opacity: 0.5;
+            `;
+            
+            // 添加雷达扫描线
+            const radarSweep = document.createElement('div');
+            radarSweep.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 2px;
+                height: 40%;
+                background: linear-gradient(to top, #ff4444, rgba(255, 68, 68, 0.3), transparent);
+                transform-origin: bottom center;
+                animation: radarSweep 4s linear infinite;
+                z-index: 3;
+            `;
+            
+            // 添加圆形扫描区域
+            const scanArea = document.createElement('div');
+            scanArea.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 200px;
+                height: 200px;
+                border: 2px solid rgba(255, 68, 68, 0.5);
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
+                animation: scanPulse 3s ease-in-out infinite;
+                z-index: 2;
+            `;
+            
+            // 添加城市标签
+            const cityLabel = document.createElement('div');
+            cityLabel.style.cssText = `
+                position: absolute;
+                top: 15px;
+                left: 20px;
+                color: var(--dark-color);
+                font-size: 1.1rem;
+                font-weight: 600;
+                z-index: 5;
+            `;
+            cityLabel.textContent = `${getCityName(city)} - 攻击监测`;
+            
+            // 添加状态指示器
+            const statusIndicator = document.createElement('div');
+            statusIndicator.style.cssText = `
+                position: absolute;
+                top: 15px;
+                right: 20px;
+                display: flex;
+                align-items: center;
+                color: var(--success-color);
+                font-size: 0.85rem;
+                font-weight: 500;
+                z-index: 5;
+            `;
+            statusIndicator.innerHTML = `
+                <div style="width: 8px; height: 8px; background: var(--success-color); border-radius: 50%; margin-right: 8px; animation: statusBlink 2s infinite;"></div>
+                系统运行中
+            `;
+            
+            // 生成攻击点数据
+            const attackPoints = [
+                { x: 30, y: 25, level: 4, type: '海豚音攻击' },
+                { x: 70, y: 30, level: 3, type: '机器学习攻击' },
+                { x: 25, y: 70, level: 2, type: '频率干扰' },
+                { x: 75, y: 75, level: 3, type: '超声波攻击' },
+                { x: 50, y: 40, level: 1, type: '低频攻击' },
+                { x: 60, y: 80, level: 2, type: '语音合成攻击' },
+                { x: 20, y: 50, level: 4, type: '深度伪造' },
+                { x: 80, y: 20, level: 1, type: '噪声攻击' }
+            ];
+            
+            // 添加攻击点
+            attackPoints.forEach((attack, index) => {
+                const point = document.createElement('div');
+                const colors = ['#00ff00', '#ffff00', '#ff6600', '#ff0000'];
+                const sizes = [8, 10, 12, 16];
+                
+                point.style.cssText = `
+                    position: absolute;
+                    width: ${sizes[attack.level - 1]}px;
+                    height: ${sizes[attack.level - 1]}px;
+                    background: radial-gradient(circle, ${colors[attack.level - 1]}, rgba(255, 255, 255, 0.3));
+                    border: 2px solid ${colors[attack.level - 1]};
+                    border-radius: 50%;
+                    top: ${attack.y}%;
+                    left: ${attack.x}%;
+                    transform: translate(-50%, -50%);
+                    animation: attackPulse 2s ease-in-out infinite;
+                    animation-delay: ${index * 0.3}s;
+                    z-index: 4;
+                    cursor: pointer;
+                `;
+                
+                // 添加点击事件显示攻击信息
+                point.title = `${attack.type} - 威胁等级: ${attack.level}`;
+                
+                fallbackDiv.appendChild(point);
+            });
+            
+            // 组装所有元素
+            fallbackDiv.appendChild(gridOverlay);
+            fallbackDiv.appendChild(scanArea);
+            fallbackDiv.appendChild(radarSweep);
+            fallbackDiv.appendChild(cityLabel);
+            fallbackDiv.appendChild(statusIndicator);
+            container.appendChild(fallbackDiv);
+            
+            // 添加增强的CSS动画
+            if (!document.getElementById('enhanced-heatmap-animations')) {
+                const style = document.createElement('style');
+                style.id = 'enhanced-heatmap-animations';
+                style.textContent = `
+                    @keyframes radarSweep {
+                        from { transform: translateX(-50%) rotate(0deg); }
+                        to { transform: translateX(-50%) rotate(360deg); }
+                    }
+                    @keyframes attackPulse {
+                        0%, 100% { 
+                            transform: translate(-50%, -50%) scale(1); 
+                            opacity: 0.8; 
+                            box-shadow: 0 0 5px currentColor;
+                        }
+                        50% { 
+                            transform: translate(-50%, -50%) scale(1.4); 
+                            opacity: 1;
+                            box-shadow: 0 0 20px currentColor;
+                        }
+                    }
+                    @keyframes scanPulse {
+                        0%, 100% { 
+                            transform: translate(-50%, -50%) scale(1); 
+                            opacity: 0.5; 
+                        }
+                        50% { 
+                            transform: translate(-50%, -50%) scale(1.1); 
+                            opacity: 0.8; 
+                        }
+                    }
+                    @keyframes statusBlink {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.3; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
+        // 获取城市中文名
+        function getCityName(city) {
+            const names = {
+                beijing: '北京',
+                shanghai: '上海', 
+                guangzhou: '广州',
+                shenzhen: '深圳'
+            };
+            return names[city] || '北京';
+        }
+        
+
+
+        // 访问历史记录图表
+        function initAccessHistoryChart() {
+            const ctx = document.getElementById('accessHistoryChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: [{
+                        data: [12, 8, 25, 45, 38, 22],
+                        borderColor: 'rgba(255, 255, 255, 0.8)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+
+
+        // L7库加载检查和初始化
+        function checkL7AndInit() {
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            function tryInit() {
+                attempts++;
+                console.log(`第${attempts}次检查L7库加载状态...`);
+                
+                if (typeof L7 !== 'undefined' && typeof L7.Scene !== 'undefined' && typeof L7.GaodeMap !== 'undefined') {
+                    console.log('✅ L7库加载成功！');
+                    console.log('L7版本:', L7.version || 'unknown');
+                    console.log('可用组件:', Object.keys(L7));
+                    initHeatmapChart('beijing');
+                } else if (attempts < maxAttempts) {
+                    console.log(`❌ L7库未完全加载，${500 * attempts}ms后重试...`);
+                    setTimeout(tryInit, 500 * attempts);
+                } else {
+                    console.error('❌ L7库加载失败，使用备用方案');
+                    initFallbackHeatmap('beijing');
+                }
+            }
+            
+            // 立即开始第一次检查
+            tryInit();
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 初始化图表
+            setTimeout(() => {
+                initAttackTrendChart();
+                initAccessHistoryChart();
+            }, 500);
+            
+            // 检查L7库加载状态并初始化热力图
+            checkL7AndInit();
+            
+            // 时间粒度切换事件监听
+            const timeRangeSelector = document.getElementById('timeRangeSelector');
+            if (timeRangeSelector) {
+                timeRangeSelector.addEventListener('change', function() {
+                    const selectedRange = parseInt(this.value);
+                    initAttackTrendChart(selectedRange);
+                });
+            }
+            
+            // 城市切换事件监听
+            const heatmapBtns = document.querySelectorAll('.heatmap-btn');
+            heatmapBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除所有活跃状态
+                    heatmapBtns.forEach(b => b.classList.remove('active'));
+                    // 添加当前按钮活跃状态
+                    this.classList.add('active');
+                    
+                    const selectedCity = this.getAttribute('data-city');
+                    setTimeout(() => {
+                        initHeatmapChart(selectedCity);
+                    }, 100);
+                });
+            });
+        });
+
+        // 导航链接点击处理
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // 移除所有活跃状态
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                // 添加当前链接活跃状态
+                this.classList.add('active');
+            });
+        });
+
+        // 响应式侧边栏处理
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            if (window.innerWidth <= 768) {
+                sidebar.style.transform = sidebar.style.transform === 'translateX(0px)' ? 'translateX(-100%)' : 'translateX(0px)';
+            }
+        }
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                document.querySelector('.sidebar').style.transform = 'translateX(0px)';
+            }
+        });
+    </script>
+</body>
+</html>

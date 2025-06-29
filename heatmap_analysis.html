@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>攻击热力图分析 - 慧音执守</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        :root {
+            --primary-color: #1A2980;
+            --primary-light: #26D0CE;
+            --secondary-color: #00d2ff;
+            --success-color: #00C853;
+            --warning-color: #FF9800;
+            --danger-color: #FF5252;
+            --dark-color: #333;
+            --light-color: #f5f7fa;
+            --text-color: #555;
+            --border-color: #e4e9f2;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--light-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #182572 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-light) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            opacity: 0.9;
+            text-align: center;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 0;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 顶部控制栏 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            height: 70px;
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .control-select {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .control-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .control-button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .control-button:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .control-button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* 主要内容区域 */
+        .content-area {
+            padding: 20px 25px;
+            display: grid;
+            grid-template-columns: 70% 30%;
+            gap: 20px;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+
+        /* 热力图主面板 */
+        .heatmap-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .map-button {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .map-button:hover {
+            background: var(--light-color);
+        }
+
+        .map-button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .heatmap-container {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e6f3ff 100%);
+            overflow: hidden;
+        }
+
+        .map-wrapper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255, 82, 82, 0.3) 0%, transparent 25%),
+                radial-gradient(circle at 60% 20%, rgba(255, 152, 0, 0.25) 0%, transparent 20%),
+                radial-gradient(circle at 80% 60%, rgba(255, 82, 82, 0.4) 0%, transparent 30%),
+                radial-gradient(circle at 30% 80%, rgba(255, 152, 0, 0.2) 0%, transparent 15%),
+                radial-gradient(circle at 70% 85%, rgba(0, 200, 83, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 45% 45%, rgba(255, 82, 82, 0.35) 0%, transparent 35%);
+            background-size: 100% 100%;
+        }
+
+        .city-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .city-marker:hover {
+            transform: scale(1.5);
+            z-index: 10;
+        }
+
+        .city-marker.high {
+            background: var(--danger-color);
+        }
+
+        .city-marker.medium {
+            background: var(--warning-color);
+        }
+
+        .city-marker.low {
+            background: var(--success-color);
+        }
+
+        .city-marker.beijing { top: 25%; left: 65%; }
+        .city-marker.shanghai { top: 45%; left: 70%; }
+        .city-marker.guangzhou { top: 70%; left: 60%; }
+        .city-marker.shenzhen { top: 75%; left: 62%; }
+        .city-marker.hangzhou { top: 50%; left: 68%; }
+        .city-marker.nanjing { top: 40%; left: 68%; }
+        .city-marker.chengdu { top: 55%; left: 45%; }
+        .city-marker.wuhan { top: 50%; left: 60%; }
+
+        .marker-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .marker-tooltip.show {
+            opacity: 1;
+        }
+
+        /* 分析面板 */
+        .analysis-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stats-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .stat-value.danger {
+            color: var(--danger-color);
+        }
+
+        .stat-value.warning {
+            color: var(--warning-color);
+        }
+
+        .stat-value.success {
+            color: var(--success-color);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            transition: width 0.5s ease;
+        }
+
+        .risk-levels {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .risk-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .risk-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .risk-indicator.high {
+            background: var(--danger-color);
+        }
+
+        .risk-indicator.medium {
+            background: var(--warning-color);
+        }
+
+        .risk-indicator.low {
+            background: var(--success-color);
+        }
+
+        .risk-info {
+            flex: 1;
+        }
+
+        .risk-level {
+            font-size: 0.9rem;
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+
+        .risk-count {
+            font-size: 0.8rem;
+            color: var(--text-color);
+        }
+
+        .legend-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .legend-text {
+            font-size: 0.85rem;
+            color: var(--text-color);
+        }
+
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            height: 250px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 200px;
+        }
+
+        /* 时间轴控制 */
+        .timeline-control {
+            background: white;
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .timeline-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .timeline-slider {
+            flex: 1;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .timeline-track {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            border-radius: 3px;
+            width: 60%;
+            position: relative;
+        }
+
+        .timeline-handle {
+            position: absolute;
+            right: -8px;
+            top: -5px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .timeline-time {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            min-width: 120px;
+            text-align: right;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .content-area {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60% 40%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-area {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto;
+                padding: 15px;
+            }
+
+            .topbar {
+                padding: 0 15px;
+            }
+
+            .control-panel {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 左侧导航栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">慧</div>
+                <div class="logo-text">慧音执守</div>
+            </div>
+            <nav class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <div class="nav-icon">概览</div>
+                            <span>总览仪表盘</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="attack_monitor.html" class="nav-link">
+                            <div class="nav-icon">监控</div>
+                            <span>攻击监测</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active">
+                            <div class="nav-icon">热图</div>
+                            <span>热力图分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sensing_tasks.html" class="nav-link">
+                            <div class="nav-icon">任务</div>
+                            <span>感知任务</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="prediction_analysis.html" class="nav-link">
+                            <div class="nav-icon">预测</div>
+                            <span>预测分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="data_reports.html" class="nav-link">
+                            <div class="nav-icon">报告</div>
+                            <span>数据报告</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="system_settings.html" class="nav-link">
+                            <div class="nav-icon">设置</div>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部控制栏 -->
+            <header class="topbar">
+                <div class="page-title">攻击热力图分析</div>
+                <div class="control-panel">
+                    <div class="control-group">
+                        <span class="control-label">时间范围：</span>
+                        <select class="control-select">
+                            <option>最近24小时</option>
+                            <option>最近7天</option>
+                            <option>最近30天</option>
+                            <option>最近90天</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">攻击类型：</span>
+                        <select class="control-select">
+                            <option>全部类型</option>
+                            <option>超声波攻击</option>
+                            <option>模糊指令</option>
+                            <option>对抗性语音</option>
+                        </select>
+                    </div>
+                    <button class="control-button active">热力视图</button>
+                    <button class="control-button">标记视图</button>
+                </div>
+                <div class="user-menu">
+                    <div class="user-avatar">管</div>
+                </div>
+            </header>
+
+            <!-- 主要内容 -->
+            <div class="content-area">
+                <!-- 热力图主面板 -->
+                <div class="heatmap-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">全国攻击分布热力图</div>
+                        <div class="map-controls">
+                            <button class="map-button active">全国</button>
+                            <button class="map-button">华北</button>
+                            <button class="map-button">华东</button>
+                            <button class="map-button">华南</button>
+                            <button class="map-button">导出</button>
+                        </div>
+                    </div>
+                    <div class="heatmap-container">
+                        <div class="map-wrapper" id="mapWrapper">
+                            <!-- 城市标记点 -->
+                            <div class="city-marker high beijing" data-city="北京" data-attacks="156" data-risk="高危"></div>
+                            <div class="city-marker medium shanghai" data-city="上海" data-attacks="89" data-risk="中等"></div>
+                            <div class="city-marker high guangzhou" data-city="广州" data-attacks="134" data-risk="高危"></div>
+                            <div class="city-marker high shenzhen" data-city="深圳" data-attacks="142" data-risk="高危"></div>
+                            <div class="city-marker medium hangzhou" data-city="杭州" data-attacks="67" data-risk="中等"></div>
+                            <div class="city-marker low nanjing" data-city="南京" data-attacks="23" data-risk="低危"></div>
+                            <div class="city-marker medium chengdu" data-city="成都" data-attacks="78" data-risk="中等"></div>
+                            <div class="city-marker low wuhan" data-city="武汉" data-attacks="34" data-risk="低危"></div>
+                            
+                            <!-- 鼠标悬停提示 -->
+                            <div class="marker-tooltip" id="markerTooltip"></div>
+                        </div>
+                    </div>
+                    <div class="timeline-control">
+                        <span class="timeline-label">时间轴：</span>
+                        <div class="timeline-slider" id="timelineSlider">
+                            <div class="timeline-track">
+                                <div class="timeline-handle"></div>
+                            </div>
+                        </div>
+                        <span class="timeline-time" id="timelineTime">2024-12-19 14:00</span>
+                    </div>
+                </div>
+
+                <!-- 分析面板 -->
+                <div class="analysis-panel">
+                    <!-- 统计概览 -->
+                    <div class="stats-card">
+                        <div class="card-title">攻击统计概览</div>
+                        <div class="stat-item">
+                            <span class="stat-label">总攻击次数</span>
+                            <span class="stat-value danger">723</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">涉及城市</span>
+                            <span class="stat-value">8个</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">高危区域</span>
+                            <span class="stat-value danger">4个</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">平均密度</span>
+                            <span class="stat-value">90.4/万人</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 76%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 风险等级分布 -->
+                    <div class="stats-card">
+                        <div class="card-title">风险等级分布</div>
+                        <div class="risk-levels">
+                            <div class="risk-item">
+                                <div class="risk-indicator high"></div>
+                                <div class="risk-info">
+                                    <div class="risk-level">高危区域</div>
+                                    <div class="risk-count">4个城市，432次攻击</div>
+                                </div>
+                            </div>
+                            <div class="risk-item">
+                                <div class="risk-indicator medium"></div>
+                                <div class="risk-info">
+                                    <div class="risk-level">中等风险</div>
+                                    <div class="risk-count">3个城市，234次攻击</div>
+                                </div>
+                            </div>
+                            <div class="risk-item">
+                                <div class="risk-indicator low"></div>
+                                <div class="risk-info">
+                                    <div class="risk-level">低危区域</div>
+                                    <div class="risk-count">2个城市，57次攻击</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 图例说明 -->
+                    <div class="legend-card">
+                        <div class="card-title">图例说明</div>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--danger-color);"></div>
+                                <span class="legend-text">高密度攻击区域</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--warning-color);"></div>
+                                <span class="legend-text">中等密度区域</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--success-color);"></div>
+                                <span class="legend-text">低密度区域</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #f0f4f8;"></div>
+                                <span class="legend-text">无攻击记录</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 趋势图表 -->
+                    <div class="chart-card">
+                        <div class="card-title">时间趋势分析</div>
+                        <div class="chart-wrapper">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 城市标记交互
+        function initMarkerInteractions() {
+            const markers = document.querySelectorAll('.city-marker');
+            const tooltip = document.getElementById('markerTooltip');
+
+            markers.forEach(marker => {
+                marker.addEventListener('mouseenter', function(e) {
+                    const city = this.dataset.city;
+                    const attacks = this.dataset.attacks;
+                    const risk = this.dataset.risk;
+                    
+                    tooltip.innerHTML = `
+                        <strong>${city}</strong><br/>
+                        攻击次数: ${attacks}<br/>
+                        风险等级: ${risk}
+                    `;
+                    
+                    const rect = this.getBoundingClientRect();
+                    const containerRect = document.getElementById('mapWrapper').getBoundingClientRect();
+                    
+                    tooltip.style.left = (rect.left - containerRect.left + 20) + 'px';
+                    tooltip.style.top = (rect.top - containerRect.top - 60) + 'px';
+                    tooltip.classList.add('show');
+                });
+
+                marker.addEventListener('mouseleave', function() {
+                    tooltip.classList.remove('show');
+                });
+
+                marker.addEventListener('click', function() {
+                    const city = this.dataset.city;
+                    console.log('查看城市详情:', city);
+                    // 这里可以添加城市详情查看逻辑
+                });
+            });
+        }
+
+        // 时间轴控制
+        function initTimelineControl() {
+            const slider = document.getElementById('timelineSlider');
+            const timeDisplay = document.getElementById('timelineTime');
+            const track = slider.querySelector('.timeline-track');
+            const handle = slider.querySelector('.timeline-handle');
+            
+            let isDragging = false;
+            
+            handle.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const sliderRect = slider.getBoundingClientRect();
+                const offsetX = e.clientX - sliderRect.left;
+                const percentage = Math.max(0, Math.min(100, (offsetX / sliderRect.width) * 100));
+                
+                track.style.width = percentage + '%';
+                
+                // 更新时间显示
+                const baseTime = new Date('2024-12-19 00:00:00');
+                const hours = Math.floor(percentage / 100 * 24);
+                const minutes = Math.floor((percentage / 100 * 24 * 60) % 60);
+                baseTime.setHours(hours, minutes);
+                
+                timeDisplay.textContent = baseTime.toLocaleString('zh-CN', {
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }).replace(/\//g, '-');
+            });
+
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+        }
+
+        // 初始化趋势图表
+        function initTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                    datasets: [{
+                        label: '攻击密度',
+                        data: [12, 8, 15, 28, 35, 42, 18],
+                        borderColor: '#1A2980',
+                        backgroundColor: 'rgba(26, 41, 128, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e4e9f2'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#e4e9f2'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 控制按钮交互
+        function initControlButtons() {
+            // 地图控制按钮
+            document.querySelectorAll('.map-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (this.textContent === '导出') {
+                        alert('正在导出热力图数据...');
+                        return;
+                    }
+                    
+                    document.querySelectorAll('.map-button').forEach(btn => {
+                        if (btn.textContent !== '导出') btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    console.log('切换地图区域:', this.textContent);
+                });
+            });
+
+            // 视图控制按钮
+            document.querySelectorAll('.control-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.control-button').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    console.log('切换视图模式:', this.textContent);
+                });
+            });
+
+            // 下拉选择框
+            document.querySelectorAll('.control-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    console.log('筛选条件改变:', this.value);
+                    // 这里可以添加筛选逻辑
+                });
+            });
+        }
+
+        // 模拟数据更新
+        function updateHeatmapData() {
+            const markers = document.querySelectorAll('.city-marker');
+            
+            markers.forEach(marker => {
+                // 随机更新攻击次数
+                const currentAttacks = parseInt(marker.dataset.attacks);
+                const newAttacks = currentAttacks + Math.floor(Math.random() * 10) - 5;
+                marker.dataset.attacks = Math.max(0, newAttacks);
+                
+                // 根据攻击次数更新风险等级
+                if (newAttacks > 100) {
+                    marker.className = marker.className.replace(/(high|medium|low)/, 'high');
+                    marker.dataset.risk = '高危';
+                } else if (newAttacks > 50) {
+                    marker.className = marker.className.replace(/(high|medium|low)/, 'medium');
+                    marker.dataset.risk = '中等';
+                } else {
+                    marker.className = marker.className.replace(/(high|medium|low)/, 'low');
+                    marker.dataset.risk = '低危';
+                }
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initMarkerInteractions();
+            initTimelineControl();
+            initControlButtons();
+            
+            // 延迟初始化图表
+            setTimeout(() => {
+                initTrendChart();
+            }, 500);
+            
+            // 定期更新数据
+            setInterval(updateHeatmapData, 30000); // 每30秒更新一次
+        });
+
+        // 导航链接点击处理
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

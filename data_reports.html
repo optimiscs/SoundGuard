@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分析报告中心 - 慧音执守</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        :root {
+            --primary-color: #1A2980;
+            --primary-light: #26D0CE;
+            --secondary-color: #00d2ff;
+            --success-color: #00C853;
+            --warning-color: #FF9800;
+            --danger-color: #FF5252;
+            --dark-color: #333;
+            --light-color: #f5f7fa;
+            --text-color: #555;
+            --border-color: #e4e9f2;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--light-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #182572 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-light) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            opacity: 0.9;
+            text-align: center;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 0;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 顶部栏 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            height: 70px;
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .report-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--light-color);
+        }
+
+        /* 内容区域 */
+        .content-area {
+            padding: 25px;
+        }
+
+        .reports-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+
+        /* 左侧报告生成面板 */
+        .report-generator {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .generator-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(26, 41, 128, 0.1);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 8px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary-color);
+        }
+
+        .checkbox-item label {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 20px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* 右侧报告列表 */
+        .reports-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 5px;
+        }
+
+        .tab {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: var(--transition);
+        }
+
+        .tab.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .reports-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .report-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .report-item:hover {
+            background-color: var(--light-color);
+        }
+
+        .report-item.active {
+            background-color: rgba(26, 41, 128, 0.05);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .report-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--dark-color);
+            margin-bottom: 4px;
+        }
+
+        .report-status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            background-color: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-processing {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .status-failed {
+            background-color: rgba(255, 82, 82, 0.1);
+            color: var(--danger-color);
+        }
+
+        .report-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .report-description {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .report-actions-inline {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-color);
+            border-radius: 3px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .action-btn:hover {
+            background: var(--light-color);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* 统计卡片 */
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .reports-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .report-generator {
+                order: 2;
+            }
+            
+            .reports-panel {
+                order: 1;
+                height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .stats-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: var(--danger-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 左侧导航栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">慧</div>
+                <div class="logo-text">慧音执守</div>
+            </div>
+            <nav class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <div class="nav-icon">📊</div>
+                            <span>总览仪表盘</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="attack_monitor.html" class="nav-link">
+                            <div class="nav-icon">🛡️</div>
+                            <span>攻击监测中心</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="heatmap_analysis.html" class="nav-link">
+                            <div class="nav-icon">🗺️</div>
+                            <span>攻击热力图</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sensing_tasks.html" class="nav-link">
+                            <div class="nav-icon">📡</div>
+                            <span>群智感知任务</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="prediction_analysis.html" class="nav-link">
+                            <div class="nav-icon">🔮</div>
+                            <span>预测分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="data_reports.html" class="nav-link active">
+                            <div class="nav-icon">📋</div>
+                            <span>数据报告中心</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="system_settings.html" class="nav-link">
+                            <div class="nav-icon">⚙️</div>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 顶部栏 -->
+            <div class="topbar">
+                <div class="page-title">数据分析报告中心</div>
+                <div class="report-actions">
+                    <button class="btn btn-secondary" onclick="refreshReports()">
+                        ↻ 刷新列表
+                    </button>
+                    <button class="btn btn-primary" onclick="showTemplateModal()">
+                        📄 报告模板
+                    </button>
+                </div>
+            </div>
+
+            <!-- 内容区域 -->
+            <div class="content-area">
+                <!-- 统计卡片 -->
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-number">47</div>
+                        <div class="stat-label">总报告数量</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">12</div>
+                        <div class="stat-label">本月新增</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">3</div>
+                        <div class="stat-label">处理中</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">156</div>
+                        <div class="stat-label">总下载量</div>
+                    </div>
+                </div>
+
+                <!-- 主要布局 -->
+                <div class="reports-layout">
+                    <!-- 左侧报告生成面板 -->
+                    <div class="report-generator">
+                        <div class="generator-title">
+                            ✨ 生成新报告
+                        </div>
+                        
+                        <form id="reportForm">
+                            <div class="form-group">
+                                <label class="form-label">报告类型</label>
+                                <select class="form-control form-select" name="reportType">
+                                    <option value="attack_analysis">攻击分析报告</option>
+                                    <option value="trend_analysis">趋势分析报告</option>
+                                    <option value="security_assessment">安全评估报告</option>
+                                    <option value="performance_report">系统性能报告</option>
+                                    <option value="user_behavior">用户行为分析</option>
+                                    <option value="custom">自定义报告</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">时间范围</label>
+                                <select class="form-control form-select" name="timeRange">
+                                    <option value="last_24h">过去24小时</option>
+                                    <option value="last_7d">过去7天</option>
+                                    <option value="last_30d">过去30天</option>
+                                    <option value="last_3m">过去3个月</option>
+                                    <option value="custom">自定义时间</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">报告名称</label>
+                                <input type="text" class="form-control" name="reportName" placeholder="输入报告名称">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">包含内容</label>
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="include_charts" name="includes" value="charts" checked>
+                                        <label for="include_charts">数据图表</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="include_tables" name="includes" value="tables" checked>
+                                        <label for="include_tables">数据表格</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="include_summary" name="includes" value="summary" checked>
+                                        <label for="include_summary">执行摘要</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="include_recommendations" name="includes" value="recommendations">
+                                        <label for="include_recommendations">建议措施</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">输出格式</label>
+                                <select class="form-control form-select" name="outputFormat">
+                                    <option value="pdf">PDF 文档</option>
+                                    <option value="excel">Excel 表格</option>
+                                    <option value="word">Word 文档</option>
+                                    <option value="html">HTML 网页</option>
+                                </select>
+                            </div>
+
+                            <button type="button" class="generate-btn" onclick="generateReport()">
+                                🚀 生成报告
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- 右侧报告列表 -->
+                    <div class="reports-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">历史报告</div>
+                            <div class="filter-tabs">
+                                <div class="tab active" onclick="filterReports('all')">全部</div>
+                                <div class="tab" onclick="filterReports('completed')">已完成</div>
+                                <div class="tab" onclick="filterReports('processing')">处理中</div>
+                                <div class="tab" onclick="filterReports('failed')">失败</div>
+                            </div>
+                        </div>
+                        
+                        <div class="reports-list" id="reportsList">
+                            <!-- 报告项目会通过JavaScript动态加载 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报告模板模态框 -->
+    <div id="templateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">报告模板管理</h2>
+                <span class="close" onclick="closeModal('templateModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>这里可以管理和配置报告模板，包括:</p>
+                <ul>
+                    <li>攻击分析报告模板</li>
+                    <li>趋势分析报告模板</li>
+                    <li>安全评估报告模板</li>
+                    <li>系统性能报告模板</li>
+                    <li>自定义报告模板</li>
+                </ul>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary">新建模板</button>
+                    <button class="btn btn-secondary" onclick="closeModal('templateModal')">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟报告数据
+        const reportsData = [
+            {
+                id: 1,
+                title: "2024年1月攻击趋势分析报告",
+                type: "attack_analysis",
+                status: "completed",
+                createdAt: "2024-01-15 14:30",
+                size: "2.3 MB",
+                format: "PDF",
+                description: "针对2024年1月份的语音攻击数据进行深度分析，识别攻击模式和趋势变化",
+                downloads: 23
+            },
+            {
+                id: 2,
+                title: "系统性能月度报告",
+                type: "performance_report",
+                status: "completed",
+                createdAt: "2024-01-12 09:15",
+                size: "1.8 MB",
+                format: "Excel",
+                description: "系统运行状态、响应时间、资源使用情况的综合分析报告",
+                downloads: 15
+            },
+            {
+                id: 3,
+                title: "安全威胁评估报告",
+                type: "security_assessment",
+                status: "processing",
+                createdAt: "2024-01-16 11:45",
+                size: "处理中",
+                format: "PDF",
+                description: "基于最新威胁情报的安全风险评估和防护建议",
+                downloads: 0
+            },
+            {
+                id: 4,
+                title: "用户行为模式分析",
+                type: "user_behavior",
+                status: "completed",
+                createdAt: "2024-01-10 16:20",
+                size: "3.1 MB",
+                format: "Word",
+                description: "分析用户使用习惯和行为模式，优化系统体验",
+                downloads: 8
+            },
+            {
+                id: 5,
+                title: "攻击热点区域分析",
+                type: "trend_analysis",
+                status: "failed",
+                createdAt: "2024-01-14 13:25",
+                size: "失败",
+                format: "PDF",
+                description: "地理位置相关的攻击分布和热点区域识别",
+                downloads: 0
+            },
+            {
+                id: 6,
+                title: "年度安全总结报告",
+                type: "custom",
+                status: "completed",
+                createdAt: "2024-01-08 10:30",
+                size: "4.7 MB",
+                format: "PDF",
+                description: "2023年度安全防护效果总结和2024年安全规划建议",
+                downloads: 42
+            }
+        ];
+
+        let currentFilter = 'all';
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReports();
+        });
+
+        // 加载报告列表
+        function loadReports() {
+            const reportsList = document.getElementById('reportsList');
+            const filteredReports = currentFilter === 'all' 
+                ? reportsData 
+                : reportsData.filter(report => report.status === currentFilter);
+
+            reportsList.innerHTML = filteredReports.map(report => `
+                <div class="report-item" onclick="selectReport(${report.id})">
+                    <div class="report-header">
+                        <div class="report-title">${report.title}</div>
+                        <div class="report-status status-${report.status}">
+                            ${getStatusText(report.status)}
+                        </div>
+                    </div>
+                    <div class="report-meta">
+                        <span>📅 ${report.createdAt}</span>
+                        <span>📄 ${report.format}</span>
+                        <span>💾 ${report.size}</span>
+                        <span>📥 ${report.downloads} 次下载</span>
+                    </div>
+                    <div class="report-description">${report.description}</div>
+                    <div class="report-actions-inline">
+                        ${report.status === 'completed' ? `
+                            <button class="action-btn" onclick="downloadReport(${report.id}, event)">下载</button>
+                            <button class="action-btn" onclick="viewReport(${report.id}, event)">预览</button>
+                            <button class="action-btn" onclick="shareReport(${report.id}, event)">分享</button>
+                        ` : report.status === 'processing' ? `
+                            <button class="action-btn" onclick="cancelReport(${report.id}, event)">取消</button>
+                        ` : `
+                            <button class="action-btn" onclick="retryReport(${report.id}, event)">重试</button>
+                            <button class="action-btn" onclick="deleteReport(${report.id}, event)">删除</button>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                'completed': '已完成',
+                'processing': '处理中',
+                'failed': '失败'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 筛选报告
+        function filterReports(filter) {
+            currentFilter = filter;
+            
+            // 更新标签状态
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            loadReports();
+        }
+
+        // 选择报告
+        function selectReport(reportId) {
+            document.querySelectorAll('.report-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+
+        // 生成报告
+        function generateReport() {
+            const formData = new FormData(document.getElementById('reportForm'));
+            const reportData = Object.fromEntries(formData);
+            
+            // 模拟报告生成
+            const newReport = {
+                id: Date.now(),
+                title: reportData.reportName || '新生成的报告',
+                type: reportData.reportType,
+                status: 'processing',
+                createdAt: new Date().toLocaleString('zh-CN'),
+                size: '处理中',
+                format: reportData.outputFormat.toUpperCase(),
+                description: '正在生成报告，请稍候...',
+                downloads: 0
+            };
+            
+            reportsData.unshift(newReport);
+            loadReports();
+            
+            // 模拟处理完成
+            setTimeout(() => {
+                newReport.status = 'completed';
+                newReport.size = '2.1 MB';
+                newReport.description = '报告生成完成，可以下载查看';
+                loadReports();
+            }, 3000);
+            
+            alert('报告生成任务已提交，请稍候...');
+        }
+
+        // 下载报告
+        function downloadReport(reportId, event) {
+            event.stopPropagation();
+            const report = reportsData.find(r => r.id === reportId);
+            if (report) {
+                report.downloads++;
+                loadReports();
+                alert(`正在下载: ${report.title}`);
+            }
+        }
+
+        // 预览报告
+        function viewReport(reportId, event) {
+            event.stopPropagation();
+            const report = reportsData.find(r => r.id === reportId);
+            if (report) {
+                alert(`正在预览: ${report.title}`);
+            }
+        }
+
+        // 分享报告
+        function shareReport(reportId, event) {
+            event.stopPropagation();
+            const report = reportsData.find(r => r.id === reportId);
+            if (report) {
+                alert(`正在生成分享链接: ${report.title}`);
+            }
+        }
+
+        // 取消报告
+        function cancelReport(reportId, event) {
+            event.stopPropagation();
+            if (confirm('确定要取消这个报告的生成吗？')) {
+                const reportIndex = reportsData.findIndex(r => r.id === reportId);
+                if (reportIndex !== -1) {
+                    reportsData.splice(reportIndex, 1);
+                    loadReports();
+                }
+            }
+        }
+
+        // 重试报告
+        function retryReport(reportId, event) {
+            event.stopPropagation();
+            const report = reportsData.find(r => r.id === reportId);
+            if (report) {
+                report.status = 'processing';
+                report.size = '处理中';
+                report.description = '正在重新生成报告，请稍候...';
+                loadReports();
+                
+                // 模拟处理完成
+                setTimeout(() => {
+                    report.status = 'completed';
+                    report.size = '2.3 MB';
+                    report.description = '报告重新生成完成';
+                    loadReports();
+                }, 2000);
+            }
+        }
+
+        // 删除报告
+        function deleteReport(reportId, event) {
+            event.stopPropagation();
+            if (confirm('确定要删除这个报告吗？此操作不可恢复。')) {
+                const reportIndex = reportsData.findIndex(r => r.id === reportId);
+                if (reportIndex !== -1) {
+                    reportsData.splice(reportIndex, 1);
+                    loadReports();
+                }
+            }
+        }
+
+        // 刷新报告列表
+        function refreshReports() {
+            loadReports();
+            alert('报告列表已刷新');
+        }
+
+        // 显示模板模态框
+        function showTemplateModal() {
+            document.getElementById('templateModal').style.display = 'block';
+        }
+
+        // 关闭模态框
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

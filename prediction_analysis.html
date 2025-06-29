@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预测分析平台 - 慧音执守</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        :root {
+            --primary-color: #1A2980;
+            --primary-light: #26D0CE;
+            --secondary-color: #00d2ff;
+            --success-color: #00C853;
+            --warning-color: #FF9800;
+            --danger-color: #FF5252;
+            --dark-color: #333;
+            --light-color: #f5f7fa;
+            --text-color: #555;
+            --border-color: #e4e9f2;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--light-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #182572 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-light) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            opacity: 0.9;
+            text-align: center;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 0;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 顶部栏 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            height: 70px;
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .prediction-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .control-select {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .control-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0f1a5c;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* 内容区域 */
+        .content-area {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+            min-height: calc(100vh - 70px);
+        }
+
+        /* 主面板 */
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* 预测概览卡片 */
+        .prediction-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 5px;
+        }
+
+        .overview-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .overview-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .overview-card.success::before {
+            background: var(--success-color);
+        }
+
+        .overview-card.warning::before {
+            background: var(--warning-color);
+        }
+
+        .overview-card.danger::before {
+            background: var(--danger-color);
+        }
+
+        .overview-card.primary::before {
+            background: var(--primary-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .card-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .card-icon.success {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+        }
+
+        .card-icon.warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .card-icon.danger {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--danger-color);
+        }
+
+        .card-icon.primary {
+            background: rgba(26, 41, 128, 0.1);
+            color: var(--primary-color);
+        }
+
+        .card-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .card-trend {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-trend.up {
+            color: var(--danger-color);
+        }
+
+        .card-trend.down {
+            color: var(--success-color);
+        }
+
+        .card-trend.stable {
+            color: var(--text-color);
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            height: 400px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-btn {
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .chart-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 320px;
+        }
+
+        /* 侧边面板 */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        /* 模型状态 */
+        .model-status {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .model-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .model-item:last-child {
+            border-bottom: none;
+        }
+
+        .model-info {
+            flex: 1;
+        }
+
+        .model-name {
+            font-size: 0.9rem;
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+
+        .model-meta {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            margin-top: 2px;
+        }
+
+        .model-status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .model-status-badge.active {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+        }
+
+        .model-status-badge.training {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .model-status-badge.inactive {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* 风险预警 */
+        .risk-alerts {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .alert-item.high {
+            background: rgba(255, 82, 82, 0.05);
+            border-left-color: var(--danger-color);
+        }
+
+        .alert-item.medium {
+            background: rgba(255, 152, 0, 0.05);
+            border-left-color: var(--warning-color);
+        }
+
+        .alert-item.low {
+            background: rgba(0, 200, 83, 0.05);
+            border-left-color: var(--success-color);
+        }
+
+        .alert-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .alert-indicator.high {
+            background: var(--danger-color);
+        }
+
+        .alert-indicator.medium {
+            background: var(--warning-color);
+        }
+
+        .alert-indicator.low {
+            background: var(--success-color);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-size: 0.9rem;
+            color: var(--dark-color);
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .alert-time {
+            font-size: 0.8rem;
+            color: var(--text-color);
+        }
+
+        /* 预测准确率 */
+        .accuracy-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .metric-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .accuracy-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .accuracy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            transition: width 0.5s ease;
+        }
+
+        /* 小图表容器 */
+        .mini-chart {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            height: 200px;
+        }
+
+        .mini-chart-wrapper {
+            position: relative;
+            height: 150px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .content-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-area {
+                padding: 15px;
+            }
+
+            .prediction-overview {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                padding: 0 15px;
+            }
+
+            .prediction-controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 预测状态指示器 */
+        .prediction-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-color);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 左侧导航栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">慧</div>
+                <div class="logo-text">慧音执守</div>
+            </div>
+            <nav class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <div class="nav-icon">概览</div>
+                            <span>总览仪表盘</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="attack_monitor.html" class="nav-link">
+                            <div class="nav-icon">监控</div>
+                            <span>攻击监测</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="heatmap_analysis.html" class="nav-link">
+                            <div class="nav-icon">热图</div>
+                            <span>热力图分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sensing_tasks.html" class="nav-link">
+                            <div class="nav-icon">任务</div>
+                            <span>感知任务</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active">
+                            <div class="nav-icon">预测</div>
+                            <span>预测分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="data_reports.html" class="nav-link">
+                            <div class="nav-icon">报告</div>
+                            <span>数据报告</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="system_settings.html" class="nav-link">
+                            <div class="nav-icon">设置</div>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="topbar">
+                <div class="page-title">预测分析平台</div>
+                <div class="prediction-controls">
+                    <div class="control-group">
+                        <span class="control-label">预测周期：</span>
+                        <select class="control-select">
+                            <option>未来7天</option>
+                            <option>未来30天</option>
+                            <option>未来90天</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">预测类型：</span>
+                        <select class="control-select">
+                            <option>攻击趋势</option>
+                            <option>风险等级</option>
+                            <option>地域分布</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary">
+                        <span class="loading"></span>
+                        <span>重新预测</span>
+                    </button>
+                    <div class="prediction-status">
+                        <div class="status-dot"></div>
+                        <span>预测运行中</span>
+                    </div>
+                </div>
+                <div class="user-avatar">管</div>
+            </header>
+
+            <!-- 主要内容 -->
+            <div class="content-area">
+                <!-- 主面板 -->
+                <div class="main-panel">
+                    <!-- 预测概览 -->
+                    <div class="prediction-overview">
+                        <div class="overview-card danger">
+                            <div class="card-header">
+                                <div class="card-title">未来风险等级</div>
+                                <div class="card-icon danger">风险</div>
+                            </div>
+                            <div class="card-value">高危</div>
+                            <div class="card-trend up">
+                                <span>↗</span>
+                                <span>较本周上升15%</span>
+                            </div>
+                        </div>
+                        <div class="overview-card warning">
+                            <div class="card-header">
+                                <div class="card-title">预测攻击次数</div>
+                                <div class="card-icon warning">次数</div>
+                            </div>
+                            <div class="card-value">1,847</div>
+                            <div class="card-trend up">
+                                <span>↗</span>
+                                <span>预计增长23%</span>
+                            </div>
+                        </div>
+                        <div class="overview-card success">
+                            <div class="card-header">
+                                <div class="card-title">模型准确率</div>
+                                <div class="card-icon success">准确</div>
+                            </div>
+                            <div class="card-value">94.2%</div>
+                            <div class="card-trend down">
+                                <span>↘</span>
+                                <span>相对稳定</span>
+                            </div>
+                        </div>
+                        <div class="overview-card primary">
+                            <div class="card-header">
+                                <div class="card-title">置信度</div>
+                                <div class="card-icon primary">置信</div>
+                            </div>
+                            <div class="card-value">87.5%</div>
+                            <div class="card-trend stable">
+                                <span>→</span>
+                                <span>保持稳定</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 攻击趋势预测图表 -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">攻击趋势预测分析</div>
+                            <div class="chart-controls">
+                                <button class="chart-btn active">趋势预测</button>
+                                <button class="chart-btn">置信区间</button>
+                                <button class="chart-btn">历史对比</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 区域风险预测图表 -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">区域风险预测分布</div>
+                            <div class="chart-controls">
+                                <button class="chart-btn active">风险等级</button>
+                                <button class="chart-btn">攻击密度</button>
+                                <button class="chart-btn">变化趋势</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="regionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 侧边面板 -->
+                <div class="side-panel">
+                    <!-- 模型状态 -->
+                    <div class="info-panel">
+                        <div class="panel-title">预测模型状态</div>
+                        <div class="model-status">
+                            <div class="model-item">
+                                <div class="model-info">
+                                    <div class="model-name">LSTM时序预测模型</div>
+                                    <div class="model-meta">版本：v2.1.3 | 准确率：94.2%</div>
+                                </div>
+                                <div class="model-status-badge active">运行中</div>
+                            </div>
+                            <div class="model-item">
+                                <div class="model-info">
+                                    <div class="model-name">随机森林分类器</div>
+                                    <div class="model-meta">版本：v1.8.5 | 准确率：89.7%</div>
+                                </div>
+                                <div class="model-status-badge active">运行中</div>
+                            </div>
+                            <div class="model-item">
+                                <div class="model-info">
+                                    <div class="model-name">神经网络回归模型</div>
+                                    <div class="model-meta">版本：v3.0.1 | 准确率：92.3%</div>
+                                </div>
+                                <div class="model-status-badge training">训练中</div>
+                            </div>
+                            <div class="model-item">
+                                <div class="model-info">
+                                    <div class="model-name">支持向量机</div>
+                                    <div class="model-meta">版本：v1.5.2 | 准确率：86.1%</div>
+                                </div>
+                                <div class="model-status-badge inactive">已停用</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 风险预警 -->
+                    <div class="info-panel">
+                        <div class="panel-title">智能风险预警</div>
+                        <div class="risk-alerts">
+                            <div class="alert-item high">
+                                <div class="alert-indicator high"></div>
+                                <div class="alert-content">
+                                    <div class="alert-title">北京地区攻击激增预警</div>
+                                    <div class="alert-time">预计12小时内发生</div>
+                                </div>
+                            </div>
+                            <div class="alert-item medium">
+                                <div class="alert-indicator medium"></div>
+                                <div class="alert-content">
+                                    <div class="alert-title">上海地区异常模式检测</div>
+                                    <div class="alert-time">预计24小时内发生</div>
+                                </div>
+                            </div>
+                            <div class="alert-item low">
+                                <div class="alert-indicator low"></div>
+                                <div class="alert-content">
+                                    <div class="alert-title">广州地区风险趋缓</div>
+                                    <div class="alert-time">预计48小时内发生</div>
+                                </div>
+                            </div>
+                            <div class="alert-item medium">
+                                <div class="alert-indicator medium"></div>
+                                <div class="alert-content">
+                                    <div class="alert-title">深圳地区设备异常</div>
+                                    <div class="alert-time">预计6小时内发生</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 预测准确率 -->
+                    <div class="info-panel">
+                        <div class="panel-title">预测准确率指标</div>
+                        <div class="accuracy-metrics">
+                            <div class="metric-row">
+                                <span class="metric-label">短期预测（7天）</span>
+                                <span class="metric-value">94.2%</span>
+                            </div>
+                            <div class="accuracy-bar">
+                                <div class="accuracy-fill" style="width: 94.2%"></div>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">中期预测（30天）</span>
+                                <span class="metric-value">87.8%</span>
+                            </div>
+                            <div class="accuracy-bar">
+                                <div class="accuracy-fill" style="width: 87.8%"></div>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">长期预测（90天）</span>
+                                <span class="metric-value">72.5%</span>
+                            </div>
+                            <div class="accuracy-bar">
+                                <div class="accuracy-fill" style="width: 72.5%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 预测类型分布 -->
+                    <div class="mini-chart">
+                        <div class="panel-title">预测类型分布</div>
+                        <div class="mini-chart-wrapper">
+                            <canvas id="typeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 攻击趋势预测图表
+        function initPredictionChart() {
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['12-20', '12-21', '12-22', '12-23', '12-24', '12-25', '12-26', '12-27'],
+                    datasets: [{
+                        label: '历史数据',
+                        data: [45, 78, 120, 67, 89, 156, 134, 98],
+                        borderColor: '#1A2980',
+                        backgroundColor: 'rgba(26, 41, 128, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4
+                    }, {
+                        label: '预测数据',
+                        data: [null, null, null, null, null, null, 134, 165, 178, 195, 210],
+                        borderColor: '#26D0CE',
+                        backgroundColor: 'rgba(38, 208, 206, 0.1)',
+                        borderWidth: 3,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4
+                    }, {
+                        label: '置信区间上限',
+                        data: [null, null, null, null, null, null, 150, 185, 198, 215, 235],
+                        borderColor: 'rgba(255, 152, 0, 0.3)',
+                        backgroundColor: 'rgba(255, 152, 0, 0.05)',
+                        borderWidth: 1,
+                        fill: '+1',
+                        tension: 0.4
+                    }, {
+                        label: '置信区间下限',
+                        data: [null, null, null, null, null, null, 118, 145, 158, 175, 185],
+                        borderColor: 'rgba(255, 152, 0, 0.3)',
+                        backgroundColor: 'rgba(255, 152, 0, 0.05)',
+                        borderWidth: 1,
+                        fill: false,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e4e9f2'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#e4e9f2'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 区域风险预测图表
+        function initRegionChart() {
+            const ctx = document.getElementById('regionChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['北京', '上海', '广州', '深圳', '杭州', '南京', '成都', '武汉'],
+                    datasets: [{
+                        label: '当前风险值',
+                        data: [85, 72, 68, 79, 56, 43, 61, 38],
+                        backgroundColor: 'rgba(26, 41, 128, 0.7)',
+                        borderColor: '#1A2980',
+                        borderWidth: 1
+                    }, {
+                        label: '预测风险值',
+                        data: [92, 78, 65, 84, 59, 48, 66, 42],
+                        backgroundColor: 'rgba(38, 208, 206, 0.7)',
+                        borderColor: '#26D0CE',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: '#e4e9f2'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#e4e9f2'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 预测类型分布图表
+        function initTypeChart() {
+            const ctx = document.getElementById('typeChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['超声波攻击', '模糊指令', '对抗性语音'],
+                    datasets: [{
+                        data: [42, 35, 23],
+                        backgroundColor: ['#FF5252', '#FF9800', '#1A2980'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 图表控制按钮
+        function initChartControls() {
+            document.querySelectorAll('.chart-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 移除同组其他按钮的active状态
+                    this.parentNode.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    console.log('切换图表视图:', this.textContent);
+                    // 这里可以添加切换图表数据的逻辑
+                });
+            });
+        }
+
+        // 控制面板交互
+        function initControls() {
+            document.querySelectorAll('.control-select').forEach(select => {
+                select.addEventListener('change', function() {
+                    console.log('预测参数改变:', this.value);
+                    // 这里可以添加重新预测的逻辑
+                });
+            });
+
+            // 重新预测按钮
+            document.querySelector('.btn-primary').addEventListener('click', function() {
+                const loadingIcon = this.querySelector('.loading');
+                const statusText = document.querySelector('.prediction-status span');
+                
+                // 模拟预测过程
+                loadingIcon.style.display = 'inline-block';
+                statusText.textContent = '正在重新预测...';
+                
+                setTimeout(() => {
+                    loadingIcon.style.display = 'none';
+                    statusText.textContent = '预测完成';
+                    
+                    setTimeout(() => {
+                        statusText.textContent = '预测运行中';
+                    }, 2000);
+                }, 3000);
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                initPredictionChart();
+                initRegionChart();
+                initTypeChart();
+            }, 500);
+            
+            initChartControls();
+            initControls();
+        });
+
+        // 导航链接点击处理
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

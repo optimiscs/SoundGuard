@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>群智感知任务管理 - 慧音执守</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        :root {
+            --primary-color: #1A2980;
+            --primary-light: #26D0CE;
+            --secondary-color: #00d2ff;
+            --success-color: #00C853;
+            --warning-color: #FF9800;
+            --danger-color: #FF5252;
+            --dark-color: #333;
+            --light-color: #f5f7fa;
+            --text-color: #555;
+            --border-color: #e4e9f2;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--light-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #182572 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-light) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            opacity: 0.9;
+            text-align: center;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 0;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 顶部栏 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            height: 70px;
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0f1a5c;
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* 内容区域 */
+        .content-area {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 25px;
+            min-height: calc(100vh - 70px);
+        }
+
+        /* 主面板 */
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 任务统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-color);
+        }
+
+        .stat-card.success::before {
+            background: var(--success-color);
+        }
+
+        .stat-card.warning::before {
+            background: var(--warning-color);
+        }
+
+        .stat-card.danger::before {
+            background: var(--danger-color);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stat-title {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: rgba(26, 41, 128, 0.1);
+            color: var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark-color);
+        }
+
+        /* 任务列表 */
+        .task-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-select {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            background: white;
+            color: var(--text-color);
+        }
+
+        .task-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+        }
+
+        .task-item:hover {
+            background-color: var(--light-color);
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .task-status.running {
+            background: var(--success-color);
+        }
+
+        .task-status.pending {
+            background: var(--warning-color);
+        }
+
+        .task-status.completed {
+            background: var(--primary-color);
+        }
+
+        .task-status.failed {
+            background: var(--danger-color);
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .task-meta {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            display: flex;
+            gap: 15px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .action-btn.view {
+            background: rgba(26, 41, 128, 0.1);
+            color: var(--primary-color);
+        }
+
+        .action-btn.edit {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .action-btn.delete {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* 侧边面板 */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .progress-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .progress-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            transition: width 0.5s ease;
+        }
+
+        .participant-list {
+            list-style: none;
+        }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .participant-item:last-child {
+            border-bottom: none;
+        }
+
+        .participant-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .participant-info {
+            flex: 1;
+        }
+
+        .participant-name {
+            font-size: 0.9rem;
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+
+        .participant-status {
+            font-size: 0.7rem;
+            color: var(--text-color);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            height: 250px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 200px;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90%;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .content-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-area {
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                padding: 0 15px;
+            }
+
+            .topbar-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 左侧导航栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">慧</div>
+                <div class="logo-text">慧音执守</div>
+            </div>
+            <nav class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <div class="nav-icon">概览</div>
+                            <span>总览仪表盘</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="attack_monitor.html" class="nav-link">
+                            <div class="nav-icon">监控</div>
+                            <span>攻击监测</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="heatmap_analysis.html" class="nav-link">
+                            <div class="nav-icon">热图</div>
+                            <span>热力图分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active">
+                            <div class="nav-icon">任务</div>
+                            <span>感知任务</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="prediction_analysis.html" class="nav-link">
+                            <div class="nav-icon">预测</div>
+                            <span>预测分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="data_reports.html" class="nav-link">
+                            <div class="nav-icon">报告</div>
+                            <span>数据报告</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="system_settings.html" class="nav-link">
+                            <div class="nav-icon">设置</div>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="topbar">
+                <div class="page-title">群智感知任务管理</div>
+                <div class="topbar-actions">
+                    <button class="btn btn-outline">
+                        <span>导入任务</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="openCreateModal()">
+                        <span>创建任务</span>
+                    </button>
+                    <div class="user-avatar">管</div>
+                </div>
+            </header>
+
+            <!-- 主要内容 -->
+            <div class="content-area">
+                <!-- 主面板 -->
+                <div class="main-panel">
+                    <!-- 统计卡片 -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-title">总任务数</div>
+                                <div class="stat-icon">总</div>
+                            </div>
+                            <div class="stat-value">156</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="stat-header">
+                                <div class="stat-title">运行中</div>
+                                <div class="stat-icon">行</div>
+                            </div>
+                            <div class="stat-value">23</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="stat-header">
+                                <div class="stat-title">待启动</div>
+                                <div class="stat-icon">待</div>
+                            </div>
+                            <div class="stat-value">8</div>
+                        </div>
+                        <div class="stat-card danger">
+                            <div class="stat-header">
+                                <div class="stat-title">已完成</div>
+                                <div class="stat-icon">完</div>
+                            </div>
+                            <div class="stat-value">125</div>
+                        </div>
+                    </div>
+
+                    <!-- 任务列表 -->
+                    <div class="task-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">任务列表</div>
+                            <div class="filter-group">
+                                <select class="filter-select">
+                                    <option>全部状态</option>
+                                    <option>运行中</option>
+                                    <option>待启动</option>
+                                    <option>已完成</option>
+                                    <option>已失败</option>
+                                </select>
+                                <select class="filter-select">
+                                    <option>全部类型</option>
+                                    <option>语音数据收集</option>
+                                    <option>环境音频监测</option>
+                                    <option>设备状态检查</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="task-list">
+                            <div class="task-item">
+                                <div class="task-status running"></div>
+                                <div class="task-info">
+                                    <div class="task-name">北京市朝阳区语音数据收集</div>
+                                    <div class="task-meta">
+                                        <span>创建者：系统管理员</span>
+                                        <span>参与者：45人</span>
+                                        <span>进度：76%</span>
+                                        <span>2024-12-19 09:30</span>
+                                    </div>
+                                </div>
+                                <div class="task-actions">
+                                    <button class="action-btn view">查看</button>
+                                    <button class="action-btn edit">编辑</button>
+                                    <button class="action-btn delete">删除</button>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-status pending"></div>
+                                <div class="task-info">
+                                    <div class="task-name">上海市浦东新区环境音频监测</div>
+                                    <div class="task-meta">
+                                        <span>创建者：区域负责人</span>
+                                        <span>参与者：32人</span>
+                                        <span>进度：0%</span>
+                                        <span>2024-12-19 14:00</span>
+                                    </div>
+                                </div>
+                                <div class="task-actions">
+                                    <button class="action-btn view">查看</button>
+                                    <button class="action-btn edit">编辑</button>
+                                    <button class="action-btn delete">删除</button>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-status completed"></div>
+                                <div class="task-info">
+                                    <div class="task-name">广州市天河区智能设备状态检查</div>
+                                    <div class="task-meta">
+                                        <span>创建者：技术团队</span>
+                                        <span>参与者：28人</span>
+                                        <span>进度：100%</span>
+                                        <span>2024-12-18 16:45</span>
+                                    </div>
+                                </div>
+                                <div class="task-actions">
+                                    <button class="action-btn view">查看</button>
+                                    <button class="action-btn edit">编辑</button>
+                                    <button class="action-btn delete">删除</button>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-status running"></div>
+                                <div class="task-info">
+                                    <div class="task-name">深圳市南山区语音安全评估</div>
+                                    <div class="task-meta">
+                                        <span>创建者：安全专家</span>
+                                        <span>参与者：56人</span>
+                                        <span>进度：42%</span>
+                                        <span>2024-12-19 11:20</span>
+                                    </div>
+                                </div>
+                                <div class="task-actions">
+                                    <button class="action-btn view">查看</button>
+                                    <button class="action-btn edit">编辑</button>
+                                    <button class="action-btn delete">删除</button>
+                                </div>
+                            </div>
+                            <div class="task-item">
+                                <div class="task-status failed"></div>
+                                <div class="task-info">
+                                    <div class="task-name">杭州市西湖区噪音污染检测</div>
+                                    <div class="task-meta">
+                                        <span>创建者：环境监测员</span>
+                                        <span>参与者：19人</span>
+                                        <span>进度：15%</span>
+                                        <span>2024-12-18 20:15</span>
+                                    </div>
+                                </div>
+                                <div class="task-actions">
+                                    <button class="action-btn view">查看</button>
+                                    <button class="action-btn edit">编辑</button>
+                                    <button class="action-btn delete">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 侧边面板 -->
+                <div class="side-panel">
+                    <!-- 任务进度概览 -->
+                    <div class="info-card">
+                        <div class="card-title">任务执行概览</div>
+                        <div class="progress-item">
+                            <span class="progress-label">今日新增任务</span>
+                            <span class="progress-value">12个</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 65%"></div>
+                        </div>
+                        <div class="progress-item" style="margin-top: 15px;">
+                            <span class="progress-label">完成率</span>
+                            <span class="progress-value">78.5%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 78.5%"></div>
+                        </div>
+                        <div class="progress-item" style="margin-top: 15px;">
+                            <span class="progress-label">参与度</span>
+                            <span class="progress-value">92.3%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 92.3%"></div>
+                        </div>
+                    </div>
+
+                    <!-- 活跃参与者 -->
+                    <div class="info-card">
+                        <div class="card-title">活跃参与者</div>
+                        <ul class="participant-list">
+                            <li class="participant-item">
+                                <div class="participant-avatar">张</div>
+                                <div class="participant-info">
+                                    <div class="participant-name">张三</div>
+                                    <div class="participant-status">参与5个任务</div>
+                                </div>
+                                <div class="status-indicator"></div>
+                            </li>
+                            <li class="participant-item">
+                                <div class="participant-avatar">李</div>
+                                <div class="participant-info">
+                                    <div class="participant-name">李四</div>
+                                    <div class="participant-status">参与3个任务</div>
+                                </div>
+                                <div class="status-indicator"></div>
+                            </li>
+                            <li class="participant-item">
+                                <div class="participant-avatar">王</div>
+                                <div class="participant-info">
+                                    <div class="participant-name">王五</div>
+                                    <div class="participant-status">参与7个任务</div>
+                                </div>
+                                <div class="status-indicator"></div>
+                            </li>
+                            <li class="participant-item">
+                                <div class="participant-avatar">赵</div>
+                                <div class="participant-info">
+                                    <div class="participant-name">赵六</div>
+                                    <div class="participant-status">参与2个任务</div>
+                                </div>
+                                <div class="status-indicator"></div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 任务分布图表 -->
+                    <div class="chart-container">
+                        <div class="card-title">任务类型分布</div>
+                        <div class="chart-wrapper">
+                            <canvas id="taskChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 创建任务模态框 -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">创建新任务</div>
+                <span class="close" onclick="closeCreateModal()">&times;</span>
+            </div>
+            <form>
+                <div class="form-group">
+                    <label class="form-label">任务名称</label>
+                    <input type="text" class="form-input" placeholder="请输入任务名称">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">任务类型</label>
+                    <select class="form-input">
+                        <option>语音数据收集</option>
+                        <option>环境音频监测</option>
+                        <option>设备状态检查</option>
+                        <option>语音安全评估</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">目标区域</label>
+                    <input type="text" class="form-input" placeholder="请输入目标区域">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">任务描述</label>
+                    <textarea class="form-input form-textarea" placeholder="请详细描述任务内容和要求"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">预期参与人数</label>
+                    <input type="number" class="form-input" placeholder="请输入预期参与人数">
+                </div>
+            </form>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeCreateModal()">取消</button>
+                <button class="btn btn-primary" onclick="createTask()">创建任务</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化任务分布图表
+        function initTaskChart() {
+            const ctx = document.getElementById('taskChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['语音数据收集', '环境音频监测', '设备状态检查', '安全评估'],
+                    datasets: [{
+                        data: [45, 30, 35, 25],
+                        backgroundColor: ['#1A2980', '#26D0CE', '#00d2ff', '#FF9800'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 模态框控制
+        function openCreateModal() {
+            document.getElementById('createModal').style.display = 'block';
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').style.display = 'none';
+        }
+
+        function createTask() {
+            alert('任务创建成功！');
+            closeCreateModal();
+            // 这里可以添加实际的任务创建逻辑
+        }
+
+        // 任务操作
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('action-btn')) {
+                const action = e.target.textContent;
+                const taskName = e.target.closest('.task-item').querySelector('.task-name').textContent;
+                
+                switch(action) {
+                    case '查看':
+                        alert(`查看任务：${taskName}`);
+                        break;
+                    case '编辑':
+                        alert(`编辑任务：${taskName}`);
+                        break;
+                    case '删除':
+                        if (confirm(`确认删除任务：${taskName}？`)) {
+                            e.target.closest('.task-item').remove();
+                        }
+                        break;
+                }
+            }
+        });
+
+        // 筛选功能
+        document.querySelectorAll('.filter-select').forEach(select => {
+            select.addEventListener('change', function() {
+                console.log('筛选条件改变:', this.value);
+                // 这里可以添加实际的筛选逻辑
+            });
+        });
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                initTaskChart();
+            }, 500);
+        });
+
+        // 导航链接点击处理
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('createModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时攻击监测中心 - 慧音执守</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        :root {
+            --primary-color: #1A2980;
+            --primary-light: #26D0CE;
+            --secondary-color: #00d2ff;
+            --success-color: #00C853;
+            --warning-color: #FF9800;
+            --danger-color: #FF5252;
+            --dark-color: #333;
+            --light-color: #f5f7fa;
+            --text-color: #555;
+            --border-color: #e4e9f2;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background-color: var(--light-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #182572 100%);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-light) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            padding: 15px 0;
+        }
+
+        .nav-item {
+            list-style: none;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            opacity: 0.9;
+            text-align: center;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 0;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 顶部控制栏 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            height: 70px;
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            margin-right: 10px;
+            position: relative;
+            animation: pulse-indicator 2s infinite;
+        }
+
+        @keyframes pulse-indicator {
+            0% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 200, 83, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0); }
+        }
+
+        .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .control-button:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .control-button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* 主要内容区域 */
+        .content-area {
+            padding: 20px 25px;
+            display: grid;
+            grid-template-columns: 30% 45% 25%;
+            gap: 20px;
+            height: calc(100vh - 70px);
+            overflow: hidden;
+        }
+
+        /* 攻击事件流 */
+        .events-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .event-counter {
+            background: var(--danger-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .events-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .event-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .event-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .event-item.selected {
+            background: linear-gradient(90deg, rgba(26, 41, 128, 0.05) 0%, rgba(38, 208, 206, 0.05) 100%);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .event-item.new {
+            animation: highlight-new 3s ease-out;
+        }
+
+        @keyframes highlight-new {
+            0% { background-color: rgba(255, 82, 82, 0.1); }
+            100% { background-color: transparent; }
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .event-type {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .event-time {
+            font-size: 0.8rem;
+            color: var(--text-color);
+        }
+
+        .event-severity {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .event-severity.high {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--danger-color);
+        }
+
+        .event-severity.medium {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        .event-severity.low {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+        }
+
+        .event-details {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            line-height: 1.4;
+        }
+
+        .event-location {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            margin-top: 5px;
+        }
+
+        /* 详情面板 */
+        .details-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .details-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .attack-overview {
+            margin-bottom: 25px;
+        }
+
+        .attack-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 10px;
+        }
+
+        .attack-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.8rem;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+
+        .meta-value {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .map-container {
+            height: 200px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .map-placeholder {
+            text-align: center;
+        }
+
+        .analysis-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .analysis-item:last-child {
+            border-bottom: none;
+        }
+
+        .analysis-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .analysis-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            transition: width 0.5s ease;
+        }
+
+        /* 操作面板 */
+        .actions-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .quick-stats {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .stat-value.danger {
+            color: var(--danger-color);
+        }
+
+        .stat-value.warning {
+            color: var(--warning-color);
+        }
+
+        .stat-value.success {
+            color: var(--success-color);
+        }
+
+        .actions-section {
+            padding: 20px;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .action-button.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .action-button.primary:hover {
+            background: #152066;
+        }
+
+        .action-button.danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .action-button.danger:hover {
+            background: #e53935;
+        }
+
+        .action-button.secondary {
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .action-button.secondary:hover {
+            background: #d1d9e6;
+        }
+
+        .system-status {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-name {
+            font-size: 0.85rem;
+            color: var(--text-color);
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-badge.online {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-badge.warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning-color);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .content-area {
+                grid-template-columns: 35% 65%;
+                grid-template-rows: 1fr 1fr;
+            }
+            
+            .actions-panel {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-area {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+                padding: 15px;
+            }
+
+            .topbar {
+                padding: 0 15px;
+            }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- 左侧导航栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">慧</div>
+                <div class="logo-text">慧音执守</div>
+            </div>
+            <nav class="nav-menu">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <div class="nav-icon">概览</div>
+                            <span>总览仪表盘</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active">
+                            <div class="nav-icon">监控</div>
+                            <span>攻击监测</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="heatmap_analysis.html" class="nav-link">
+                            <div class="nav-icon">热图</div>
+                            <span>热力图分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="sensing_tasks.html" class="nav-link">
+                            <div class="nav-icon">任务</div>
+                            <span>感知任务</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="prediction_analysis.html" class="nav-link">
+                            <div class="nav-icon">预测</div>
+                            <span>预测分析</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="data_reports.html" class="nav-link">
+                            <div class="nav-icon">报告</div>
+                            <span>数据报告</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="system_settings.html" class="nav-link">
+                            <div class="nav-icon">设置</div>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 顶部控制栏 -->
+            <header class="topbar">
+                <div class="page-title">
+                    <div class="status-indicator"></div>
+                    实时攻击监测中心
+                </div>
+                <div class="control-panel">
+                    <button class="control-button active">实时监控</button>
+                    <button class="control-button">历史记录</button>
+                    <select class="control-button">
+                        <option>最近1小时</option>
+                        <option>最近24小时</option>
+                        <option>最近7天</option>
+                    </select>
+                </div>
+                <div class="user-menu">
+                    <div class="user-avatar">管</div>
+                </div>
+            </header>
+
+            <!-- 主要内容 -->
+            <div class="content-area">
+                <!-- 攻击事件流 -->
+                <div class="events-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">实时攻击事件</div>
+                        <div class="event-counter" id="eventCounter">12</div>
+                    </div>
+                    <div class="events-list" id="eventsList">
+                        <div class="event-item selected" data-event-id="1">
+                            <div class="event-header">
+                                <div class="event-type">超声波攻击</div>
+                                <div class="event-time">2分钟前</div>
+                            </div>
+                            <div class="event-severity high">高危</div>
+                            <div class="event-details">
+                                检测到针对智能音箱的超声波指令注入攻击
+                            </div>
+                            <div class="event-location">北京市朝阳区 | 设备ID: HY-2024-001</div>
+                        </div>
+
+                        <div class="event-item" data-event-id="2">
+                            <div class="event-header">
+                                <div class="event-type">模糊指令攻击</div>
+                                <div class="event-time">5分钟前</div>
+                            </div>
+                            <div class="event-severity medium">中等</div>
+                            <div class="event-details">
+                                发现混淆语音指令尝试绕过安全检测
+                            </div>
+                            <div class="event-location">上海市浦东新区 | 设备ID: HY-2024-002</div>
+                        </div>
+
+                        <div class="event-item" data-event-id="3">
+                            <div class="event-header">
+                                <div class="event-type">对抗性语音</div>
+                                <div class="event-time">8分钟前</div>
+                            </div>
+                            <div class="event-severity low">低危</div>
+                            <div class="event-details">
+                                检测到疑似对抗性语音样本，已自动阻断
+                            </div>
+                            <div class="event-location">广州市天河区 | 设备ID: HY-2024-003</div>
+                        </div>
+
+                        <div class="event-item" data-event-id="4">
+                            <div class="event-header">
+                                <div class="event-type">海豚音攻击</div>
+                                <div class="event-time">12分钟前</div>
+                            </div>
+                            <div class="event-severity high">高危</div>
+                            <div class="event-details">
+                                检测到高频超声波语音指令攻击
+                            </div>
+                            <div class="event-location">深圳市南山区 | 设备ID: HY-2024-004</div>
+                        </div>
+
+                        <div class="event-item" data-event-id="5">
+                            <div class="event-header">
+                                <div class="event-type">指令注入</div>
+                                <div class="event-time">15分钟前</div>
+                            </div>
+                            <div class="event-severity medium">中等</div>
+                            <div class="event-details">
+                                发现恶意语音指令注入尝试
+                            </div>
+                            <div class="event-location">杭州市西湖区 | 设备ID: HY-2024-005</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 详情面板 -->
+                <div class="details-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">攻击详情分析</div>
+                    </div>
+                    <div class="details-content" id="detailsContent">
+                        <div class="attack-overview">
+                            <div class="attack-title">超声波攻击事件 #HY-2024-001</div>
+                            <div class="attack-meta">
+                                <div class="meta-item">
+                                    <div class="meta-label">攻击类型</div>
+                                    <div class="meta-value">超声波指令注入</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">威胁等级</div>
+                                    <div class="meta-value" style="color: var(--danger-color);">高危</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">检测时间</div>
+                                    <div class="meta-value">2024-12-19 14:23:15</div>
+                                </div>
+                                <div class="meta-item">
+                                    <div class="meta-label">处理状态</div>
+                                    <div class="meta-value" style="color: var(--warning-color);">处理中</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="map-container">
+                            <div class="map-placeholder">
+                                <div>攻击地理位置</div>
+                                <div style="font-size: 0.9rem; margin-top: 5px;">北京市朝阳区建国门外大街</div>
+                                <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">
+                                    纬度: 39.9042° 经度: 116.4074°
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analysis-section">
+                            <div class="section-title">技术分析</div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">频率范围</div>
+                                <div class="analysis-value">20-24 kHz</div>
+                            </div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">信号强度</div>
+                                <div class="analysis-value">-35 dB</div>
+                            </div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">持续时间</div>
+                                <div class="analysis-value">2.3 秒</div>
+                            </div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">目标设备</div>
+                                <div class="analysis-value">小米智能音箱</div>
+                            </div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">检测置信度</div>
+                                <div class="analysis-value">96.8%</div>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: 96.8%"></div>
+                            </div>
+                        </div>
+
+                        <div class="analysis-section">
+                            <div class="section-title">攻击内容</div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">原始指令</div>
+                                <div class="analysis-value">转账 1000 元到 133****5678</div>
+                            </div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">攻击意图</div>
+                                <div class="analysis-value">恶意转账</div>
+                            </div>
+                            <div class="analysis-item">
+                                <div class="analysis-label">风险评估</div>
+                                <div class="analysis-value" style="color: var(--danger-color);">极高风险</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作面板 -->
+                <div class="actions-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">实时统计</div>
+                    </div>
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <div class="stat-label">今日攻击</div>
+                            <div class="stat-value danger">247</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">已阻断</div>
+                            <div class="stat-value success">239</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">处理中</div>
+                            <div class="stat-value warning">8</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">成功率</div>
+                            <div class="stat-value success">96.8%</div>
+                        </div>
+                    </div>
+
+                    <div class="actions-section">
+                        <div class="section-title">快速操作</div>
+                        <button class="action-button danger">立即阻断</button>
+                        <button class="action-button primary">深度分析</button>
+                        <button class="action-button secondary">标记误报</button>
+                        <button class="action-button secondary">生成报告</button>
+                    </div>
+
+                    <div class="system-status">
+                        <div class="section-title">系统状态</div>
+                        <div class="status-item">
+                            <div class="status-name">检测引擎</div>
+                            <div class="status-badge online">在线</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-name">AI模型</div>
+                            <div class="status-badge online">正常</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-name">数据库</div>
+                            <div class="status-badge online">连接</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-name">存储空间</div>
+                            <div class="status-badge warning">78%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 事件数据
+        let eventId = 6;
+        const attackTypes = ['超声波攻击', '模糊指令攻击', '对抗性语音', '海豚音攻击', '指令注入'];
+        const locations = ['北京市朝阳区', '上海市浦东新区', '广州市天河区', '深圳市南山区', '杭州市西湖区'];
+        const severities = ['high', 'medium', 'low'];
+        const severityTexts = ['高危', '中等', '低危'];
+
+        // 生成随机攻击事件
+        function generateRandomEvent() {
+            const type = attackTypes[Math.floor(Math.random() * attackTypes.length)];
+            const location = locations[Math.floor(Math.random() * locations.length)];
+            const severityIndex = Math.floor(Math.random() * severities.length);
+            const severity = severities[severityIndex];
+            const severityText = severityTexts[severityIndex];
+            
+            return {
+                id: eventId++,
+                type: type,
+                location: location,
+                severity: severity,
+                severityText: severityText,
+                time: '刚刚',
+                description: `检测到${type}事件，已自动记录`
+            };
+        }
+
+        // 添加新事件到列表
+        function addNewEvent() {
+            const event = generateRandomEvent();
+            const eventsList = document.getElementById('eventsList');
+            const eventCounter = document.getElementById('eventCounter');
+            
+            const eventElement = document.createElement('div');
+            eventElement.className = 'event-item new';
+            eventElement.setAttribute('data-event-id', event.id);
+            eventElement.innerHTML = `
+                <div class="event-header">
+                    <div class="event-type">${event.type}</div>
+                    <div class="event-time">${event.time}</div>
+                </div>
+                <div class="event-severity ${event.severity}">${event.severityText}</div>
+                <div class="event-details">${event.description}</div>
+                <div class="event-location">${event.location} | 设备ID: HY-2024-${String(event.id).padStart(3, '0')}</div>
+            `;
+            
+            // 添加点击事件
+            eventElement.addEventListener('click', function() {
+                selectEvent(this);
+            });
+            
+            // 插入到列表顶部
+            eventsList.insertBefore(eventElement, eventsList.firstChild);
+            
+            // 更新计数器
+            const currentCount = parseInt(eventCounter.textContent);
+            eventCounter.textContent = currentCount + 1;
+            
+            // 限制列表长度
+            const events = eventsList.querySelectorAll('.event-item');
+            if (events.length > 10) {
+                events[events.length - 1].remove();
+            }
+        }
+
+        // 选择事件
+        function selectEvent(eventElement) {
+            // 移除所有选中状态
+            document.querySelectorAll('.event-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 选中当前事件
+            eventElement.classList.add('selected');
+            
+            // 更新详情面板（这里可以根据实际需求更新内容）
+            updateDetailsPanel(eventElement);
+        }
+
+        // 更新详情面板
+        function updateDetailsPanel(eventElement) {
+            const eventType = eventElement.querySelector('.event-type').textContent;
+            const eventTime = eventElement.querySelector('.event-time').textContent;
+            const eventLocation = eventElement.querySelector('.event-location').textContent;
+            const eventId = eventElement.getAttribute('data-event-id');
+            
+            // 这里可以根据选中的事件更新详情面板的内容
+            console.log('选中事件:', eventType, eventTime, eventLocation);
+        }
+
+        // 初始化事件监听
+        function initEventListeners() {
+            // 为现有事件添加点击监听
+            document.querySelectorAll('.event-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selectEvent(this);
+                });
+            });
+
+            // 控制按钮事件
+            document.querySelectorAll('.control-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (this.tagName === 'BUTTON') {
+                        document.querySelectorAll('.control-button').forEach(btn => {
+                            if (btn.tagName === 'BUTTON') btn.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            // 操作按钮事件
+            document.querySelectorAll('.action-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.textContent;
+                    console.log('执行操作:', action);
+                    
+                    // 这里可以添加实际的操作逻辑
+                    if (action === '立即阻断') {
+                        alert('攻击已被成功阻断！');
+                    } else if (action === '深度分析') {
+                        alert('正在进行深度分析...');
+                    } else if (action === '标记误报') {
+                        alert('已标记为误报');
+                    } else if (action === '生成报告') {
+                        alert('报告生成中...');
+                    }
+                });
+            });
+        }
+
+        // 更新统计数据
+        function updateStatistics() {
+            const stats = {
+                total: Math.floor(Math.random() * 50) + 200,
+                blocked: Math.floor(Math.random() * 10) + 230,
+                processing: Math.floor(Math.random() * 5) + 5,
+                successRate: (Math.random() * 2 + 95).toFixed(1)
+            };
+            
+            document.querySelector('.stat-value.danger').textContent = stats.total;
+            document.querySelector('.stat-value.success').textContent = stats.blocked;
+            document.querySelector('.stat-value.warning').textContent = stats.processing;
+            document.querySelectorAll('.stat-value.success')[1].textContent = stats.successRate + '%';
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initEventListeners();
+            
+            // 定期添加新事件（模拟实时数据）
+            setInterval(addNewEvent, 15000); // 每15秒添加一个新事件
+            
+            // 定期更新统计数据
+            setInterval(updateStatistics, 10000); // 每10秒更新统计数据
+        });
+
+        // 导航链接点击处理
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
