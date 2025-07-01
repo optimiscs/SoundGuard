@@ -1,0 +1,119 @@
+# 依赖包目录
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 项目文档和作品书（不上传）
+*.pdf
+【自强杯】慧音执守-作品书.pdf
+作品书.pdf
+文档/
+docs/
+
+# 编辑器和IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+
+# 运行时数据
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# 覆盖率报告目录
+coverage/
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# 构建输出目录
+dist/
+build/
+.tmp/
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 缓存目录
+.cache/
+.parcel-cache/
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 压缩包
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 配置文件（可能包含敏感信息）
+config/local.js
+config/production.js
+
+# 媒体文件（大文件）
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+
+# 音频文件（大文件）
+*.mp3
+*.wav
+*.flac
+*.aac
+
+# 图片原始文件（大文件）
+*.psd
+*.ai
+*.sketch
+
+# 备份文件
+backup/
+backups/
+
+# 测试文件
+test-results/
+coverage/
+
+# 锁文件（如果使用yarn）
+# yarn.lock
+
+# 系统特定文件
+*.orig
+.sass-cache/ 

@@ -6,6 +6,14 @@
     <title>数据中心 - 慧音执守</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 高德地图安全配置 - 必须在地图库加载前设置 -->
+    <script>
+        window._AMapSecurityConfig = {
+            securityJsCode: "db903491cb7f313e2b5ff1f667dcade0"
+        };
+    </script>
+    
     <!-- L7地图可视化库 -->
     <script src="https://cdn.jsdelivr.net/npm/@antv/l7@2.21.9/dist/l7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@antv/l7-maps@2.21.9/dist/l7-maps.min.js"></script>
@@ -1230,30 +1238,30 @@
         let heatmapScene = null;
         let currentCity = 'beijing';
         
-        // 城市配置
+        // 城市配置 - 根据L7文档推荐设置
         const cityConfigs = {
             beijing: {
                 center: [116.397128, 39.916527],
                 pitch: 45,
-                zoom: 10.5,
+                zoom: 10,
                 sweepCenter: [116.397128, 39.916527]
             },
             shanghai: {
                 center: [121.473701, 31.230416],
                 pitch: 45,
-                zoom: 10.5,
+                zoom: 10,
                 sweepCenter: [121.473701, 31.230416]
             },
             guangzhou: {
                 center: [113.264434, 23.129162],
                 pitch: 45,
-                zoom: 10.5,
+                zoom: 10,
                 sweepCenter: [113.264434, 23.129162]
             },
             shenzhen: {
                 center: [114.085947, 22.547],
                 pitch: 45,
-                zoom: 10.5,
+                zoom: 10,
                 sweepCenter: [114.085947, 22.547]
             }
         };
@@ -1268,8 +1276,8 @@
             }
             
             // 检查L7是否加载
-            if (typeof L7 === 'undefined') {
-                console.error('L7库未加载，使用备用可视化');
+            if (typeof L7 === 'undefined' || typeof L7.Scene === 'undefined' || typeof L7.GaodeMap === 'undefined') {
+                console.error('L7库未完全加载，使用备用可视化');
                 initFallbackHeatmap(city);
                 return;
             }
@@ -1277,7 +1285,11 @@
             try {
                 // 销毁之前的场景
                 if (heatmapScene) {
-                    heatmapScene.destroy();
+                    try {
+                        heatmapScene.destroy();
+                    } catch (e) {
+                        console.warn('销毁旧场景时出错:', e);
+                    }
                     heatmapScene = null;
                 }
                 
@@ -1286,87 +1298,245 @@
                 
                 console.log('创建L7场景...', config);
                 
-                // 使用最简单的初始化方式
+                // 确保容器存在
+                const sceneContainer = document.getElementById('heatmapChart');
+                if (!sceneContainer) {
+                    throw new Error('找不到heatmapChart容器');
+                }
+                
+                // 简单清理容器（保持L7可能需要的结构）
+                if (sceneContainer.children.length === 0) {
+                    sceneContainer.innerHTML = '';
+                }
+                
+                // 按照官方文档最佳实践初始化 Scene
                 heatmapScene = new L7.Scene({
                     id: 'heatmapChart',
                     map: new L7.GaodeMap({
+                        token: '848c947552adbcc437808fc2b13a0a0c',
                         style: 'dark',
                         center: config.center,
-                        pitch: 60,
-                        zoom: config.zoom,
+                        zoom: config.zoom || 10,
+                        pitch: config.pitch || 45,
                     }),
+                    debug: true, // 启用调试模式
                 });
                 
-                // 直接在场景创建后添加图层
+                // 监听场景加载完成事件
                 heatmapScene.on('loaded', () => {
-                    console.log('L7场景加载完成');
+                    console.log('✅ L7场景加载完成');
                     
-                    // 简化版本：只添加攻击点
-                    try {
-                        const attackData = generateSimpleAttackData(config.center);
-                        console.log('攻击数据:', attackData);
-                        
-                        const pointLayer = new L7.PointLayer()
-                            .source(attackData)
-                            .shape('circle')
-                            .size('intensity', [10, 30])
-                            .color('level', ['#00ff00', '#ffff00', '#ff6600', '#ff0000'])
-                            .style({
-                                opacity: 0.8,
-                            })
-                            .animate({
-                                enable: true,
-                                type: 'pulse',
-                                duration: 2000,
-                            });
-                        
-                        heatmapScene.addLayer(pointLayer);
-                        console.log('攻击点图层添加成功');
-                        
-                    } catch (layerError) {
-                        console.error('添加图层失败:', layerError);
-                    }
+                    // 简单清理备用内容
+                    const fallbackDivs = sceneContainer.querySelectorAll('div[style*="text-align"]');
+                    fallbackDivs.forEach(div => div.remove());
+                    console.log('🧹 清理备用内容');
+                    
+                    // 延迟添加图层，确保场景完全就绪
+                    setTimeout(() => {
+                        addVisualizationLayers(config);
+                    }, 100);
                 });
                 
-                heatmapScene.on('maploaded', () => {
-                    console.log('地图加载完成');
+                // 添加错误处理
+                heatmapScene.on('error', (error) => {
+                    console.error('❌ 地图加载出错:', error);
+                    console.log('🔄 切换到备用可视化方案');
+                    initFallbackHeatmap(city);
                 });
                 
             } catch (error) {
-                console.error('L7初始化失败:', error);
-                initFallbackHeatmap(city);
+                console.error('❌ L7初始化失败:', error);
+                console.error('错误详情:', error.message || error);
+                console.log('🔄 使用备用可视化方案');
+                
+                // 确保容器状态正确
+                try {
+                    if (heatmapScene) {
+                        heatmapScene.destroy();
+                        heatmapScene = null;
+                    }
+                } catch (destroyError) {
+                    console.warn('清理场景时出错:', destroyError);
+                }
+                
+                // 延迟执行备用方案，确保DOM稳定
+                setTimeout(() => {
+                    initFallbackHeatmap(city);
+                }, 100);
             }
         }
         
-        // 生成简化的攻击数据
-        function generateSimpleAttackData(center) {
+        // 添加可视化图层到场景
+        function addVisualizationLayers(config) {
+            if (!heatmapScene) {
+                console.warn('场景不存在，无法添加图层');
+                return;
+            }
+            
+            try {
+                console.log('🎯 开始添加可视化图层...');
+                
+                // 1. 生成攻击点数据
+                const attackData = generateAttackData(config.center);
+                console.log('📊 攻击点数据:', attackData);
+                
+                // 2. 创建攻击点图层
+                const pointLayer = new L7.PointLayer({
+                    zIndex: 10,
+                })
+                    .source(attackData)
+                    .shape('circle')
+                    .size('intensity', [10, 25])
+                    .color('level', [
+                        '#00FF00',  // 1-低危 绿色
+                        '#FFFF00',  // 2-中危 黄色  
+                        '#FF6600',  // 3-高危 橙色
+                        '#FF0000'   // 4-极危 红色
+                    ])
+                    .style({
+                        opacity: 0.8,
+                        stroke: '#FFFFFF',
+                        strokeWidth: 2,
+                    })
+                    .animate({
+                        enable: true,
+                        type: 'pulse',
+                        duration: 2000,
+                    });
+                
+                // 添加攻击点图层
+                heatmapScene.addLayer(pointLayer);
+                console.log('✅ 攻击点图层添加成功');
+                
+                // 3. 延迟添加扫光效果
+                setTimeout(() => {
+                    createSimpleRadarEffect(config);
+                }, 200);
+                
+            } catch (error) {
+                console.error('❌ 添加图层失败:', error);
+                console.log('🔄 切换到备用可视化');
+                initFallbackHeatmap(currentCity);
+            }
+        }
+        
+        // 生成攻击数据点，支持扫光特效
+        function generateAttackData(center) {
+            const attacks = [];
+            const attackTypes = [
+                { name: '高危攻击', level: 4, intensity: 80 },
+                { name: '中危攻击', level: 3, intensity: 60 },
+                { name: '低危攻击', level: 2, intensity: 40 },
+                { name: '轻微攻击', level: 1, intensity: 20 }
+            ];
+            
+            // 在中心点周围生成多个攻击点
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * 45) * (Math.PI / 180); // 每45度一个点
+                const radius = 0.008 + Math.random() * 0.015; // 随机半径
+                const attackType = attackTypes[Math.floor(Math.random() * attackTypes.length)];
+                
+                attacks.push({
+                    type: 'Feature',
+                    properties: {
+                        intensity: attackType.intensity + Math.random() * 20 - 10,
+                        level: attackType.level,
+                        name: attackType.name,
+                        id: `attack_${i}`
+                    },
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [
+                            center[0] + Math.cos(angle) * radius,
+                            center[1] + Math.sin(angle) * radius
+                        ]
+                    }
+                });
+            }
+            
             return {
                 type: 'FeatureCollection',
-                features: [
-                    {
-                        type: 'Feature',
-                        properties: { intensity: 80, level: 4, name: '高危攻击' },
-                        geometry: { type: 'Point', coordinates: [center[0] + 0.01, center[1] + 0.01] }
-                    },
-                    {
-                        type: 'Feature', 
-                        properties: { intensity: 60, level: 3, name: '中危攻击' },
-                        geometry: { type: 'Point', coordinates: [center[0] - 0.01, center[1] + 0.005] }
-                    },
-                    {
-                        type: 'Feature',
-                        properties: { intensity: 40, level: 2, name: '低危攻击' },
-                        geometry: { type: 'Point', coordinates: [center[0] + 0.005, center[1] - 0.01] }
-                    }
-                ]
+                features: attacks
             };
+        }
+
+        // 创建简单雷达扫光效果
+        function createSimpleRadarEffect(config) {
+            console.log('🔄 创建简单雷达扫光效果');
+            
+            // 安全检查
+            if (!heatmapScene || !L7.PointLayer) {
+                console.warn('L7场景或PointLayer不可用，跳过扫光效果');
+                return;
+            }
+            
+            try {
+                // 创建扫光中心点数据
+                const sweepData = {
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        properties: { id: 'radar_center' },
+                        geometry: {
+                            type: 'Point',
+                            coordinates: config.center
+                        }
+                    }]
+                };
+                
+                // 外层扫光圆
+                const outerLayer = new L7.PointLayer({ zIndex: 1 })
+                    .source(sweepData)
+                    .shape('circle')
+                    .size(160)
+                    .color('#1990FF')
+                    .style({
+                        opacity: 0.15,
+                        stroke: '#1990FF',
+                        strokeWidth: 2,
+                    })
+                    .animate({
+                        enable: true,
+                        type: 'pulse',
+                        duration: 3000,
+                    });
+                
+                // 内层扫光圆
+                const innerLayer = new L7.PointLayer({ zIndex: 2 })
+                    .source(sweepData)
+                    .shape('circle')
+                    .size(100)
+                    .color('#26D0CE')
+                    .style({
+                        opacity: 0.2,
+                        stroke: '#26D0CE',
+                        strokeWidth: 1,
+                    })
+                    .animate({
+                        enable: true,
+                        type: 'pulse',
+                        duration: 2000,
+                    });
+                
+                // 添加图层
+                try {
+                    heatmapScene.addLayer(outerLayer);
+                    heatmapScene.addLayer(innerLayer);
+                    console.log('✅ 雷达扫光效果添加成功');
+                } catch (addError) {
+                    console.warn('❌ 添加扫光图层失败:', addError);
+                }
+                
+            } catch (error) {
+                console.warn('❌ 创建扫光效果失败:', error);
+            }
         }
         
 
         
-        // 备用热力图实现
+        // 简化备用热力图实现（去掉遮罩层）
         function initFallbackHeatmap(city = 'beijing') {
-            console.log('🎨 使用增强版备用热力图实现');
+            console.log('🎨 使用简化备用热力图实现');
             
             const container = document.getElementById('heatmapChart');
             if (!container) return;
@@ -1374,177 +1544,45 @@
             // 清空容器
             container.innerHTML = '';
             
-            // 创建主容器
+            // 创建主容器 - 使用简洁的背景
             const fallbackDiv = document.createElement('div');
             fallbackDiv.style.cssText = `
                 position: relative;
                 width: 100%;
                 height: 100%;
-                background: 
-                    radial-gradient(circle at 25% 25%, rgba(255, 68, 68, 0.1) 0%, transparent 40%),
-                    radial-gradient(circle at 75% 25%, rgba(255, 165, 0, 0.1) 0%, transparent 40%),
-                    radial-gradient(circle at 75% 75%, rgba(255, 255, 0, 0.1) 0%, transparent 40%),
-                    radial-gradient(circle at 25% 75%, rgba(0, 255, 0, 0.1) 0%, transparent 40%),
-                    radial-gradient(circle at 50% 50%, rgba(0, 150, 255, 0.05) 0%, transparent 60%),
-                    #f8f9fa;
+                background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
                 overflow: hidden;
                 border-radius: 12px;
-            `;
-            
-            // 添加网格背景
-            const gridOverlay = document.createElement('div');
-            gridOverlay.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-image: 
-                    linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
-                background-size: 20px 20px;
-                opacity: 0.5;
-            `;
-            
-            // 添加雷达扫描线
-            const radarSweep = document.createElement('div');
-            radarSweep.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 2px;
-                height: 40%;
-                background: linear-gradient(to top, #ff4444, rgba(255, 68, 68, 0.3), transparent);
-                transform-origin: bottom center;
-                animation: radarSweep 4s linear infinite;
-                z-index: 3;
-            `;
-            
-            // 添加圆形扫描区域
-            const scanArea = document.createElement('div');
-            scanArea.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 200px;
-                height: 200px;
-                border: 2px solid rgba(255, 68, 68, 0.5);
-                border-radius: 50%;
-                transform: translate(-50%, -50%);
-                animation: scanPulse 3s ease-in-out infinite;
-                z-index: 2;
-            `;
-            
-            // 添加城市标签
-            const cityLabel = document.createElement('div');
-            cityLabel.style.cssText = `
-                position: absolute;
-                top: 15px;
-                left: 20px;
-                color: var(--dark-color);
-                font-size: 1.1rem;
-                font-weight: 600;
-                z-index: 5;
-            `;
-            cityLabel.textContent = `${getCityName(city)} - 攻击监测`;
-            
-            // 添加状态指示器
-            const statusIndicator = document.createElement('div');
-            statusIndicator.style.cssText = `
-                position: absolute;
-                top: 15px;
-                right: 20px;
                 display: flex;
                 align-items: center;
-                color: var(--success-color);
-                font-size: 0.85rem;
-                font-weight: 500;
+                justify-content: center;
+            `;
+            
+            // 添加简洁状态信息
+            const infoDiv = document.createElement('div');
+            infoDiv.style.cssText = `
+                text-align: center;
+                color: white;
                 z-index: 5;
             `;
-            statusIndicator.innerHTML = `
-                <div style="width: 8px; height: 8px; background: var(--success-color); border-radius: 50%; margin-right: 8px; animation: statusBlink 2s infinite;"></div>
-                系统运行中
+            infoDiv.innerHTML = `
+                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 15px;">
+                    ${getCityName(city)} - 攻击监测
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <div style="width: 10px; height: 10px; background: #1990FF; border-radius: 50%; animation: statusBlink 2s infinite;"></div>
+                    <span style="font-size: 0.9rem;">系统运行正常</span>
+                </div>
             `;
             
-            // 生成攻击点数据
-            const attackPoints = [
-                { x: 30, y: 25, level: 4, type: '海豚音攻击' },
-                { x: 70, y: 30, level: 3, type: '机器学习攻击' },
-                { x: 25, y: 70, level: 2, type: '频率干扰' },
-                { x: 75, y: 75, level: 3, type: '超声波攻击' },
-                { x: 50, y: 40, level: 1, type: '低频攻击' },
-                { x: 60, y: 80, level: 2, type: '语音合成攻击' },
-                { x: 20, y: 50, level: 4, type: '深度伪造' },
-                { x: 80, y: 20, level: 1, type: '噪声攻击' }
-            ];
-            
-            // 添加攻击点
-            attackPoints.forEach((attack, index) => {
-                const point = document.createElement('div');
-                const colors = ['#00ff00', '#ffff00', '#ff6600', '#ff0000'];
-                const sizes = [8, 10, 12, 16];
-                
-                point.style.cssText = `
-                    position: absolute;
-                    width: ${sizes[attack.level - 1]}px;
-                    height: ${sizes[attack.level - 1]}px;
-                    background: radial-gradient(circle, ${colors[attack.level - 1]}, rgba(255, 255, 255, 0.3));
-                    border: 2px solid ${colors[attack.level - 1]};
-                    border-radius: 50%;
-                    top: ${attack.y}%;
-                    left: ${attack.x}%;
-                    transform: translate(-50%, -50%);
-                    animation: attackPulse 2s ease-in-out infinite;
-                    animation-delay: ${index * 0.3}s;
-                    z-index: 4;
-                    cursor: pointer;
-                `;
-                
-                // 添加点击事件显示攻击信息
-                point.title = `${attack.type} - 威胁等级: ${attack.level}`;
-                
-                fallbackDiv.appendChild(point);
-            });
-            
-            // 组装所有元素
-            fallbackDiv.appendChild(gridOverlay);
-            fallbackDiv.appendChild(scanArea);
-            fallbackDiv.appendChild(radarSweep);
-            fallbackDiv.appendChild(cityLabel);
-            fallbackDiv.appendChild(statusIndicator);
+            fallbackDiv.appendChild(infoDiv);
             container.appendChild(fallbackDiv);
             
-            // 添加增强的CSS动画
-            if (!document.getElementById('enhanced-heatmap-animations')) {
+            // 添加简化的CSS动画
+            if (!document.getElementById('simplified-heatmap-animations')) {
                 const style = document.createElement('style');
-                style.id = 'enhanced-heatmap-animations';
+                style.id = 'simplified-heatmap-animations';
                 style.textContent = `
-                    @keyframes radarSweep {
-                        from { transform: translateX(-50%) rotate(0deg); }
-                        to { transform: translateX(-50%) rotate(360deg); }
-                    }
-                    @keyframes attackPulse {
-                        0%, 100% { 
-                            transform: translate(-50%, -50%) scale(1); 
-                            opacity: 0.8; 
-                            box-shadow: 0 0 5px currentColor;
-                        }
-                        50% { 
-                            transform: translate(-50%, -50%) scale(1.4); 
-                            opacity: 1;
-                            box-shadow: 0 0 20px currentColor;
-                        }
-                    }
-                    @keyframes scanPulse {
-                        0%, 100% { 
-                            transform: translate(-50%, -50%) scale(1); 
-                            opacity: 0.5; 
-                        }
-                        50% { 
-                            transform: translate(-50%, -50%) scale(1.1); 
-                            opacity: 0.8; 
-                        }
-                    }
                     @keyframes statusBlink {
                         0%, 100% { opacity: 1; }
                         50% { opacity: 0.3; }
@@ -1607,35 +1645,86 @@
 
 
 
+        // 配置高德地图API key（确保在全局设置）
+        function setupMapConfig() {
+            try {
+                // 设置高德地图安全配置
+                window._AMapSecurityConfig = {
+                    securityJsCode: "db903491cb7f313e2b5ff1f667dcade0"
+                };
+                
+                // 确保配置被正确设置
+                if (window._AMapSecurityConfig && window._AMapSecurityConfig.securityJsCode) {
+                    console.log('✅ 高德地图安全配置已设置');
+                } else {
+                    console.warn('⚠️ 高德地图安全配置可能未生效');
+                }
+            } catch (error) {
+                console.error('❌ 高德地图配置失败:', error);
+            }
+        }
+
         // L7库加载检查和初始化
         function checkL7AndInit() {
             let attempts = 0;
-            const maxAttempts = 10;
+            const maxAttempts = 15; // 增加重试次数
             
             function tryInit() {
                 attempts++;
                 console.log(`第${attempts}次检查L7库加载状态...`);
                 
-                if (typeof L7 !== 'undefined' && typeof L7.Scene !== 'undefined' && typeof L7.GaodeMap !== 'undefined') {
+                // 更严格的L7库检查
+                const isL7Available = (
+                    typeof L7 !== 'undefined' &&
+                    typeof L7.Scene !== 'undefined' &&
+                    typeof L7.GaodeMap !== 'undefined' &&
+                    typeof L7.PointLayer !== 'undefined'
+                );
+                
+                if (isL7Available) {
                     console.log('✅ L7库加载成功！');
                     console.log('L7版本:', L7.version || 'unknown');
-                    console.log('可用组件:', Object.keys(L7));
-                    initHeatmapChart('beijing');
+                    
+                    try {
+                        // 检查关键组件
+                        const components = ['Scene', 'GaodeMap', 'PointLayer', 'CityBuildingLayer', 'LineLayer', 'PolygonLayer'];
+                        const available = components.filter(comp => typeof L7[comp] !== 'undefined');
+                        const missing = components.filter(comp => typeof L7[comp] === 'undefined');
+                        
+                        console.log('✅ 可用组件:', available);
+                        if (missing.length > 0) {
+                            console.log('⚠️ 缺失组件:', missing);
+                        }
+                        
+                        // 延迟初始化，确保DOM准备就绪
+                        setTimeout(() => {
+                            initHeatmapChart('beijing');
+                        }, 200);
+                        
+                    } catch (checkError) {
+                        console.error('❌ 组件检查失败:', checkError);
+                        initFallbackHeatmap('beijing');
+                    }
+                    
                 } else if (attempts < maxAttempts) {
-                    console.log(`❌ L7库未完全加载，${500 * attempts}ms后重试...`);
-                    setTimeout(tryInit, 500 * attempts);
+                    const delay = Math.min(500 * attempts, 3000); // 最大延迟3秒
+                    console.log(`❌ L7库未完全加载，${delay}ms后重试...`);
+                    setTimeout(tryInit, delay);
                 } else {
                     console.error('❌ L7库加载失败，使用备用方案');
                     initFallbackHeatmap('beijing');
                 }
             }
             
-            // 立即开始第一次检查
-            tryInit();
+            // 延迟开始第一次检查，确保脚本已加载
+            setTimeout(tryInit, 100);
         }
 
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
+            
+            // 首先设置地图配置
+            setupMapConfig();
             
             // 初始化图表
             setTimeout(() => {
